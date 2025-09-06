@@ -120,9 +120,9 @@ class GameRenderer {
     }
 
     getSensorSrc(stabilizer, maxRow) {
-        const base = stabilizer.excited ? 'sensor_on_8bit' : 'sensor_off_8bit';
-        if (stabilizer.row === 0) return `static/${base.replace('_8bit','')}_boundary_top_8bit.svg`;
-        if (stabilizer.row === maxRow) return `static/${base.replace('_8bit','')}_boundary_bottom_8bit.svg`;
+        const base = stabilizer.excited ? 'sensor_on' : 'sensor_off';
+        if (stabilizer.row === 0) return `static/${base}_boundary_top.svg`;
+        if (stabilizer.row === maxRow) return `static/${base}_boundary_bottom.svg`;
         return `static/${base}.svg`;
     }
 
