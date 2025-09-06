@@ -49,12 +49,16 @@ class GameController {
         
         if (this.gameState.playgroundMode) {
             document.getElementById('game-status').textContent = i18n.t('statuses.playgroundIntro');
-            document.getElementById('toggle-errors-btn').style.display = 'block';
-            document.getElementById('toggle-errors-btn').textContent = i18n.t('buttons.toggleErrors.show');
+            const toggleBtn = document.getElementById('toggle-errors-btn');
+            if (toggleBtn) {
+                toggleBtn.style.display = 'block';
+                toggleBtn.textContent = i18n.t('buttons.toggleErrors.show');
+            }
             await this.newPlayground();
         } else {
             document.getElementById('game-status').textContent = i18n.t('game.levelRound', { level: 1, round: 1, total: this.gameState.roundsPerLevel });
-            document.getElementById('toggle-errors-btn').style.display = 'none';
+            const toggleBtn = document.getElementById('toggle-errors-btn');
+            if (toggleBtn) toggleBtn.style.display = 'none';
             await this.newRound(true);
         }
         
@@ -68,7 +72,8 @@ class GameController {
         document.getElementById('status').textContent = '';
         document.getElementById('selection-panel').classList.remove('hide');
         document.getElementById('floating-reset').style.display = 'none';
-        document.getElementById('toggle-errors-btn').style.display = 'none';
+    const toggleBtn = document.getElementById('toggle-errors-btn');
+    if (toggleBtn) toggleBtn.style.display = 'none';
         
         if (document.getElementById('mode-select').value === 'playground') {
             this.newPlayground();
@@ -227,8 +232,12 @@ class GameController {
     }
 
     hideResultsPanel() {
+        // Restore the default status panel shell including the toggle-errors button
         document.getElementById('status-panel').innerHTML = 
-            '<div class="status" id="game-status"></div><div class="status" id="status"></div>';
+            '<div class="status" id="game-status"></div>' +
+            '<div class="status" id="status"></div>' +
+            '<button class="btn" id="toggle-errors-btn" onclick="window.gameController.togglePlaygroundErrors()" style="display:none; margin-top: 10px;" data-i18n="buttons.toggleErrors.show">Show Errors</button>';
+        if (window.i18n) i18n.apply();
         this.resetGame();
     }
 
