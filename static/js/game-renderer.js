@@ -45,6 +45,8 @@ class GameRenderer {
         // Update status
         this.updatePlaygroundStatus(state);
         this.setLegend(state.zero_syndrome || state.logical_error);
+    // Show beavers on the right only if a logical error has occurred with zero syndrome
+    this.updateRightBeavers(gameState.gridSize, !!(state.zero_syndrome && state.logical_error));
     }
 
     renderRegularGame(state, gameState) {
@@ -228,6 +230,8 @@ class GameRenderer {
                 if (gameState.gameActive && !gameState.playgroundMode) {
                     gameState.logicalErrors++;
                     this.setLegend(true);
+                    // Show beavers on the right water to indicate path opened
+                    this.updateRightBeavers(gameState.gridSize, true);
                     window.gameController.endGame();
                     return;
                 }
@@ -261,6 +265,9 @@ class GameRenderer {
         } else {
             this.setLegend(false);
         }
+
+    // Ensure right-side beavers reflect current logical error state
+    this.updateRightBeavers(gameState.gridSize, !!(state.zero_syndrome && state.logical_error));
     }
 
     setLegend(full) {
@@ -323,6 +330,28 @@ class GameRenderer {
             img.style.zIndex = '20';
             img.style.transform = 'scaleX(-1)';
             dirtLeft.appendChild(img);
+        }
+    }
+
+    updateRightBeavers(gridSize, visible) {
+        const dirtRight = document.getElementById('dirt-right');
+        if (!dirtRight) return;
+        // Clear existing right-side beavers
+        dirtRight.querySelectorAll('.beaver-img-right').forEach(e => e.remove());
+        if (!visible) return;
+        // Place beavers at every second row (boundary rows)
+        for (let i = 0; i < 2 * gridSize; i += 2) {
+            let topPx = i * (this.cellSize + this.gap);
+            let img = document.createElement('img');
+            img.src = 'static/beaver.svg';
+            img.className = 'beaver-img-right';
+            img.style.position = 'absolute';
+            img.style.right = '1px';
+            img.style.top = (topPx + this.cellSize / 2 - 10) + 'px';
+            img.style.width = '48px';
+            img.style.zIndex = '20';
+            // Default orientation assumed facing left; no flip to face into the field from the right
+            dirtRight.appendChild(img);
         }
     }
 

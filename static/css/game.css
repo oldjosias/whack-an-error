@@ -306,12 +306,9 @@ label {
 @media (max-width: 1024px) {
     .game-area-container {
         margin: 15px auto;
-        flex-direction: column;
+        /* Keep side water visible; remain in row layout */
+        flex-direction: row;
         align-items: center;
-    }
-    
-    #dirt-left, #dirt-right {
-        display: none;
     }
     
     #status-panel {
@@ -332,8 +329,9 @@ label {
     }
     
     #surface-code-area {
-        width: 80vw;
-        height: 80vw;
+        /* Fit between two 50px side panels + some gutter */
+        width: calc(100vw - 140px);
+        height: calc(100vw - 140px);
         max-width: 450px;
         max-height: 450px;
     }
@@ -370,17 +368,15 @@ label {
     
     .game-area-container {
         margin: 10px auto;
-        flex-direction: column;
+        /* Keep side water visible; remain in row layout */
+        flex-direction: row;
         align-items: center;
     }
     
-    #dirt-left, #dirt-right {
-        display: none;
-    }
-    
     #surface-code-area {
-        width: 90vw;
-        height: 90vw;
+        /* Fit between two 50px side panels + some gutter */
+        width: calc(100vw - 140px);
+        height: calc(100vw - 140px);
         max-width: 400px;
         max-height: 400px;
     }
