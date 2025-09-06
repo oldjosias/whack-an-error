@@ -23,6 +23,7 @@ h1, h2, h3 {
     align-items: flex-start;
     position: relative;
     width: fit-content;
+    box-shadow: 4px 4px 0 #b5b5b5;
 }
 
 /* Main content container for very wide screens */
@@ -30,7 +31,6 @@ h1, h2, h3 {
     body {
         max-width: 1400px;
         margin: 0 auto;
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
     }
 }
 
@@ -44,15 +44,6 @@ h1, h2, h3 {
     align-self: stretch;
 }
 
-#dirt-left {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-}
-
-#dirt-right {
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-}
 
 /* Surface Code Game Area */
 #surface-code-area {

@@ -1,83 +1,141 @@
-# Whack-an-Error
+# Whack‑an‑Error
 
-A quantum error correction game built with Flask and JavaScript. Players learn about surface code error correction by finding and fixing errors in a quantum computing lattice.
+A kid‑friendly, interactive surface‑code game. Play to fix physical errors without causing a logical error, and learn quantum error correction along the way.
+
+This repo supports two ways to run the game:
+
+- Static (client‑only) build: No backend. Runs on GitHub Pages or any static server. Data is kept in your browser using localStorage.
+- Flask backend: Local server that persists runs to CSV and serves statistics/highscores via API.
 
 ## Features
 
-- **Interactive Game**: Click qubits to flip them and correct errors
-- **Educational Tutorial**: Step-by-step guide to understanding quantum error correction
-- **Statistics Tracking**: Monitor player performance and learning progress
-- **Responsive Design**: Works on desktop and mobile devices
-- **Multiple Difficulty Levels**: Progressive challenge as players advance
+- Interactive surface‑code board with stabilizer “sensors”
+- Two modes: Game and Playground (toggle error visibility in Playground)
+- Level progression with popup between levels; max level = n/2 where n = d² + (d−1)²
+- End‑of‑game Save/Discard; highscores per grid size (d)
+- Statistics: Logical error rate vs physical error rate; “Show by age range” with an Unknown bucket
+- Dataset management (static mode): Download dataset (includes highscores) and Delete dataset (also clears highscores)
+- Localization (EN/DE) with live UI updates
+- Responsive layout; water panels always visible on small screens; visual “beavers” on the right when a logical error occurs
+- Kid‑friendly, pixel/retro styling
 
-## Quick Start
+## Run the game
 
-1. **Install Dependencies**:
-   ```bash
-   pip install flask pandas numpy
-   ```
+### Option A — Static (no backend)
 
-2. **Run the Application**:
-   ```bash
-   python app.py
-   ```
+Works offline; ideal for GitHub Pages.
 
-3. **Open Browser**: Navigate to `http://localhost:5000`
+- Quick open: Open `index.html` in a modern browser. If your browser blocks local file imports, serve the folder:
 
-## Game Modes
+```bash
+python3 -m http.server 8000
+# then open http://localhost:8000
+```
 
-- **Game Mode**: Try to correct all detectable errors without creating logical errors
-- **Playground Mode**: Freely experiment with error patterns and their effects
+- Data lives in your browser under localStorage keys:
+   - `whack_data_v1` (runs)
+   - `whack_highscores_v1` (highscores)
 
-## Project Structure
+### Option B — Flask backend (local CSV persistence)
+
+1) Install dependencies
+
+```bash
+pip install flask pandas numpy
+```
+
+2) Start the server
+
+```bash
+python app.py
+```
+
+3) Visit http://localhost:5000
+
+The backend saves to `data.csv` and exposes the API below.
+
+## How to play
+
+- Pick a grid size d and mode, then Start.
+- Game mode: Click qubits to turn all sensors off without creating a logical error.
+- Playground mode: Explore; use the “Show/Hide errors” toggle to visualize ground truth.
+- If all sensors are off and no logical error occurs, advance rounds/levels. Between levels, a popup offers “Start next level”.
+- When a logical error occurs, the game ends. Enter optional name/age and Save or Discard. Clicking qubits is disabled after game over.
+- The selection panel shows the highscore for the chosen d.
+
+## Statistics (what’s plotted and how)
+
+- X‑axis (physical error rate): i/n for i = 1..floor(n/2), with n = d² + (d−1)².
+- Y‑axis (logical error rate): 1 − successes/rounds, where “rounds” only counts levels that were actually reached.
+- Mixed datasets (different d): axes are recomputed from grid sizes. For age splits, a conservative common axis (smallest n) is used.
+- “Show by age range” groups into ranges plus an Unknown bucket when age is missing/not a number.
+
+Static build UI extras:
+- Download dataset: Exports both `data` and `highscores` in one JSON bundle.
+- Delete dataset: Clears both runs and highscores and immediately refreshes the highscore label.
+
+## Localization
+
+- English and German are supported. The UI updates immediately when switching language.
+
+## Project structure
 
 ```
-├── app.py              # Main Flask application
-├── game_logic.py       # Core game mechanics and surface code logic
-├── data_manager.py     # Data storage and statistics handling
-├── surface_code.py     # Quantum surface code implementation
-├── templates/
-│   └── index.html      # Main game interface
+├── index.html                # Static entry (client‑only)
+├── 404.html                  # GitHub Pages SPA fallback
+├── app.py                    # Flask app (optional backend)
+├── data_manager.py           # CSV storage & server‑side statistics
+├── game_logic.py             # Backend (legacy) game logic
+├── surface_code.py           # Backend (legacy) surface code helpers
 ├── static/
 │   ├── css/
-│   │   └── game.css    # Game styling
+│   │   └── game.css
 │   ├── js/
-│   │   ├── api-client.js     # Backend communication
-│   │   ├── game-controller.js # Main game controller
-│   │   ├── game-renderer.js   # UI rendering
-│   │   ├── game-state.js      # Game state management
-│   │   └── managers.js        # Statistics and tutorial managers
-│   └── [images]        # Game assets
-└── data.csv           # Player data storage
+│   │   ├── static-engine.js  # Client‑side Surface Code simulator
+│   │   ├── api-client.js     # Uses StaticEngine (static) or API (backend)
+│   │   ├── game-state.js     # State & progression (max level = n/2)
+│   │   ├── game-renderer.js  # Rendering, sensors, beavers, legend
+│   │   ├── managers.js       # Statistics & tutorial UI
+│   │   ├── game-controller.js# Orchestration
+│   │   └── i18n.js           # EN/DE strings and DOM bindings
+│   └── assets (images)
+├── templates/
+│   └── index.html            # Flask entry
+└── data.csv                  # CSV (backend mode)
 ```
 
-## API Endpoints
+## API (Flask mode)
 
-- `GET /` - Main game interface
-- `POST /api/new_round` - Start a new game round
-- `POST /api/flip_qubit` - Flip a qubit during gameplay
-- `POST /api/store_game_data` - Save player performance data
-- `GET /api/highscores` - Retrieve top scores
-- `GET /api/statistics` - Get overall game statistics
-- `GET /api/statistics_by_age` - Get age-grouped statistics
+- GET `/` — Main page
+- POST `/api/new_round` — Start a new round
+- POST `/api/flip_qubit` — Flip a qubit
+- POST `/api/store_game_data` — Persist a run (name, age, grid, per‑level successes, etc.)
+- GET `/api/highscores` — Highscores per grid size
+- GET `/api/statistics` — Overall statistics
+- GET `/api/statistics_by_age` — Statistics split by age ranges
 
-## Development
+In static mode, the client uses `StaticEngine` and localStorage; these endpoints aren’t called.
 
-The application follows a modular architecture:
+## Deployment
 
-- **Frontend**: Vanilla JavaScript with component-based organization
-- **Backend**: Flask with separated concerns (game logic, data management)
-- **Storage**: CSV-based data persistence
-- **Styling**: Responsive CSS with flexbox layout
+### GitHub Pages (static)
 
-## Educational Goals
+- Commit/push to `main`. Enable Pages for the repo and set source to the root.
+- `index.html` and `404.html` are already in place; assets use relative paths.
 
-This game teaches:
-- Quantum error correction principles
-- Surface code mechanics
-- Syndrome detection and correction
-- Logical vs physical errors
-- Error probability and mitigation strategies
+### Flask (local/server)
+
+- Run `python app.py` locally, or deploy behind a WSGI server. CSV persistence is to `data.csv`.
+
+## Data & privacy
+
+- Static mode: All data stays in your browser (localStorage). Use the Statistics modal to Download or Delete.
+- Flask mode: Data is stored in `data.csv` on the server machine; no external services are used.
+
+## Educational goals
+
+- Surface code basics, stabilizer syndromes, and the distinction between physical and logical errors
+- How correction success probability changes with physical error rate
 
 ## License
 

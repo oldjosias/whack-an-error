@@ -79,51 +79,23 @@ class GameRenderer {
 
     createQubitElement(qubit, showErrors) {
         const el = document.createElement('div');
-        let style = '';
-        
-        if (showErrors && qubit.actual_error) {
-            style = "background: url('static/water.jpeg') center center/cover no-repeat; border:4px solid #d00;";
-        } else {
-            style = 'background:rgba(160,82,45,0.2);border:4px solid #6b3e1e;';
-        }
-        
-        el.setAttribute('style', style + 'width:48px;height:48px;border-radius:50%;position:absolute;display:flex;align-items:center;justify-content:center;');
+        let bg = "static/qubit_base.svg";
+        if (showErrors && qubit.actual_error) bg = "static/qubit_error.svg";
+        el.setAttribute('style', `background:url('${bg}') center center/contain no-repeat;width:48px;height:48px;position:absolute;display:flex;align-items:center;justify-content:center;`);
         return el;
     }
 
     createQubitElementRegular(qubit, showErrors) {
         const el = document.createElement('div');
-        let style = '';
         const isFlipped = qubit.flipped;
-        
+        let bg = 'static/qubit_base.svg';
         if (!showErrors) {
-            // During play: flipped by player uses dirt.png and orange border
-            if (isFlipped) {
-                style = "background: url('static/dirt.png') center center/cover no-repeat; border:4px solid orange;";
-            } else {
-                style = 'background:rgba(160,82,45,0.2);border:4px solid #6b3e1e;';
-            }
+            if (isFlipped) bg = 'static/qubit_flipped.svg';
         } else {
-            // When zero syndrome
-            if (qubit.actual_error) {
-                // Residual error: water background, red border
-                style = "background: url('static/water.jpeg') center center/cover no-repeat; border:4px solid #d00;";
-            } else {
-                // No error: opaque brown background
-                style = 'background:rgba(160,82,45,0.2);border:4px solid #6b3e1e;';
-            }
-            
-            // Overlay border for original error and/or flipped by player
-            if (qubit.initial_error && isFlipped) {
-                style = style.replace(/border:[^;]+;/, 'border:2px solid red; outline:2px solid orange;');
-            } else if (!qubit.initial_error && isFlipped) {
-                style = style.replace(/border:[^;]+;/, 'border:4px solid orange;');
-            } else if (qubit.initial_error && !isFlipped) {
-                style = style.replace(/border:[^;]+;/, 'border:4px solid red;');
-            }
+            if (qubit.actual_error) bg = 'static/qubit_error.svg';
+            else bg = 'static/qubit_base.svg';
         }
-        
-        el.setAttribute('style', style + 'width:48px;height:48px;border-radius:50%;position:absolute;display:flex;align-items:center;justify-content:center;');
+        el.setAttribute('style', `background:url('${bg}') center center/contain no-repeat;width:48px;height:48px;position:absolute;display:flex;align-items:center;justify-content:center;`);
         return el;
     }
 
@@ -148,10 +120,10 @@ class GameRenderer {
     }
 
     getSensorSrc(stabilizer, maxRow) {
-        const base = stabilizer.excited ? 'sensor_on' : 'sensor_off';
-    if (stabilizer.row === 0) return `static/${base}_boundary_top.svg`;
-    if (stabilizer.row === maxRow) return `static/${base}_boundary_bottom.svg`;
-    return `static/${base}.svg`;
+        const base = stabilizer.excited ? 'sensor_on_8bit' : 'sensor_off_8bit';
+        if (stabilizer.row === 0) return `static/${base.replace('_8bit','')}_boundary_top_8bit.svg`;
+        if (stabilizer.row === maxRow) return `static/${base.replace('_8bit','')}_boundary_bottom_8bit.svg`;
+        return `static/${base}.svg`;
     }
 
     getBounds(state) {
@@ -279,33 +251,30 @@ class GameRenderer {
                 <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                     <div style="display:flex; gap:32px; align-items:center; justify-content:center; margin-bottom:8px;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:32px; height:32px; border-radius:50%; border:0px solid #d00; background:url('static/water.jpeg') center center/cover no-repeat;"></div>
+                            <div style="width:32px; height:32px; background:url('static/qubit_error.svg') center center/contain no-repeat;"></div>
                 <span style="font-size:1em;">${i18n.t('legend.restError')}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:32px; height:32px; border-radius:50%; border:0px solid #6b3e1e; background:rgba(160,82,45,0.2);"></div>
+                            <div style="width:32px; height:32px; background:url('static/qubit_base.svg') center center/contain no-repeat;"></div>
                 <span style="font-size:1em;">${i18n.t('legend.noError')}</span>
                         </div>
                     </div>
                     <div style="display:flex; gap:32px; align-items:center; justify-content:center;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:32px; height:32px; border-radius:50%; border:4px solid #d00; background:rgba(160,82,45,0);"></div>
+                            <div style="width:32px; height:32px; background:url('static/qubit_orig.svg') center center/contain no-repeat;"></div>
                 <span style="font-size:1em;">${i18n.t('legend.origError')}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:32px; height:32px; border-radius:50%; border:4px solid orange;"></div>
+                            <div style="width:32px; height:32px; background:url('static/qubit_flipped.svg') center center/contain no-repeat;"></div>
                 <span style="font-size:1em;">${i18n.t('legend.playerCorrection')}</span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="width:32px; height:32px; border-radius:50%; border:2px solid orange; outline:2px solid red;"></div>
-                <span style="font-size:1em;">${i18n.t('legend.correctedOrigError')}</span>
-                        </div>
+                        <!-- Combined corrected original error can be represented contextually by qubit state; omit extra icon for 8-bit set -->
                     </div>
                 </div>`;
         } else {
         legend.innerHTML = `
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="width:32px; height:32px; border-radius:50%; border:4px solid orange; background:url('static/dirt.png') center center/cover no-repeat;"></div>
+                    <div style="width:32px; height:32px; background:url('static/qubit_flipped.svg') center center/contain no-repeat;"></div>
             <span style="font-size:1em;">${i18n.t('legend.correction')}</span>
                 </div>`;
         }
