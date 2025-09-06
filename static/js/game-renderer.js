@@ -178,15 +178,15 @@ class GameRenderer {
     }
 
     updatePlaygroundStatus(state) {
-        let statusText = '';
+    let statusText = '';
         if (state.zero_syndrome) {
             if (state.logical_error) {
-                statusText = 'Alle Sensoren aus! Logischer Fehler! (Spielplatz-Modus: Du kannst weitermachen)';
+        statusText = i18n.t('statuses.allSensorsOff_logical');
             } else {
-                statusText = 'Alle Sensoren aus! Kein logischer Fehler.';
+        statusText = i18n.t('statuses.allSensorsOff_noLogical');
             }
         } else {
-            statusText = 'Stelle alle Sensoren auf aus.';
+        statusText = i18n.t('statuses.setAllSensorsOff');
         }
         document.getElementById('status').textContent = statusText;
         
@@ -221,10 +221,10 @@ class GameRenderer {
         
         gameState.roundJustStarted = false;
         
-        let statusText = '';
+    let statusText = '';
         if (state.zero_syndrome) {
             if (state.logical_error) {
-                statusText = 'Alle Sensoren aus! Logischer Fehler!';
+        statusText = i18n.t('statuses.allSensorsOff_logical');
                 if (gameState.gameActive && !gameState.playgroundMode) {
                     gameState.logicalErrors++;
                     this.setLegend(true);
@@ -233,20 +233,20 @@ class GameRenderer {
                 }
             } else {
                 if (gameState.gameActive) {
-                    statusText = 'Alle Sensoren aus! Kein logischer Fehler.';
+            statusText = i18n.t('statuses.allSensorsOff_noLogical');
                     gameState.successfulRoundsPerLevel[gameState.currentLevel - 1]++;
                     
                     // Show next round button
                     const nextBtn = document.createElement('button');
                     nextBtn.id = 'next-round-btn';
                     nextBtn.className = 'btn';
-                    nextBtn.textContent = 'Nächste Runde';
+            nextBtn.textContent = i18n.t('buttons.nextRound');
                     nextBtn.onclick = () => window.gameController.nextRound();
                     statusPanel.appendChild(nextBtn);
                 }
             }
         } else {
-            statusText = 'Stelle alle Sensoren auf aus.';
+        statusText = i18n.t('statuses.setAllSensorsOff');
         }
         
         document.getElementById('status').textContent = statusText;
@@ -268,38 +268,38 @@ class GameRenderer {
         if (!legend) return;
         
         if (full) {
-            legend.innerHTML = `
+        legend.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                     <div style="display:flex; gap:32px; align-items:center; justify-content:center; margin-bottom:8px;">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:32px; height:32px; border-radius:50%; border:0px solid #d00; background:url('static/water.jpeg') center center/cover no-repeat;"></div>
-                            <span style="font-size:1em;">Restfehler</span>
+                <span style="font-size:1em;">${i18n.t('legend.restError')}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:32px; height:32px; border-radius:50%; border:0px solid #6b3e1e; background:rgba(160,82,45,0.2);"></div>
-                            <span style="font-size:1em;">Kein Fehler</span>
+                <span style="font-size:1em;">${i18n.t('legend.noError')}</span>
                         </div>
                     </div>
                     <div style="display:flex; gap:32px; align-items:center; justify-content:center;">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:32px; height:32px; border-radius:50%; border:4px solid #d00; background:rgba(160,82,45,0);"></div>
-                            <span style="font-size:1em;">Ursprünglicher Fehler</span>
+                <span style="font-size:1em;">${i18n.t('legend.origError')}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:32px; height:32px; border-radius:50%; border:4px solid orange;"></div>
-                            <span style="font-size:1em;">Korrektur durch Spieler</span>
+                <span style="font-size:1em;">${i18n.t('legend.playerCorrection')}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div style="width:32px; height:32px; border-radius:50%; border:2px solid orange; outline:2px solid red;"></div>
-                            <span style="font-size:1em;">Ursprünglicher Fehler korrigiert</span>
+                <span style="font-size:1em;">${i18n.t('legend.correctedOrigError')}</span>
                         </div>
                     </div>
                 </div>`;
         } else {
-            legend.innerHTML = `
+        legend.innerHTML = `
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div style="width:32px; height:32px; border-radius:50%; border:4px solid orange; background:url('static/dirt.png') center center/cover no-repeat;"></div>
-                    <span style="font-size:1em;">Korrektur</span>
+            <span style="font-size:1em;">${i18n.t('legend.correction')}</span>
                 </div>`;
         }
     }

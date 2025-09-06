@@ -32,7 +32,8 @@ class ApiClient {
         const g = String(gameData.grid_size);
         const prev = hs[g] || { level: 0 };
         if (gameData.level_reached > (prev.level || 0)) {
-            hs[g] = { level: gameData.level_reached, name: gameData.name || 'Anonym' };
+            const anon = (window.i18n ? i18n.t('anonymousName') : 'Anonym');
+            hs[g] = { level: gameData.level_reached, name: gameData.name || anon };
             localStorage.setItem(this.highscoreKey, JSON.stringify(hs));
         }
         return Promise.resolve({ filename: `local-${entry.id}.json` });

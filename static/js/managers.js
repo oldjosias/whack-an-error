@@ -75,13 +75,13 @@ class StatisticsManager {
         const datasets = [];
         let i = 0;
 
-        for (const label in data) {
+    for (const label in data) {
             const xvals = data[label].physical_error_rates;
             const yvals = data[label].logical_error_rates;
             const points = xvals.map((x, idx) => ({ x: x, y: yvals[idx] }));
 
             datasets.push({
-                label: isAgeSplit ? ('Age ' + label) : ('Size ' + label),
+        label: isAgeSplit ? (i18n.t('stats.ageLabel') + ' ' + label) : (i18n.t('stats.sizeLabel') + ' ' + label),
                 data: points,
                 borderColor: colors[i % colors.length],
                 backgroundColor: colors[i % colors.length] + '33',
@@ -98,11 +98,11 @@ class StatisticsManager {
             options: {
                 scales: {
                     x: { 
-                        title: { display: true, text: 'Physical Error Rate' }, 
+                        title: { display: true, text: i18n.t('stats.physical') }, 
                         type: 'linear' 
                     },
                     y: { 
-                        title: { display: true, text: 'Logical Error Rate' }, 
+                        title: { display: true, text: i18n.t('stats.logical') }, 
                         min: 0, 
                         max: 1 
                     }
@@ -118,19 +118,21 @@ class StatisticsManager {
  */
 class TutorialManager {
     constructor() {
-        this.slides = [
+        this.slides = (window.i18n ? i18n.t('tutorial.slides') : [
             `<b>Willkommen bei Fehler-Whack!</b><br><br>Dies ist ein Spiel zur Quantenfehlerkorrektur. Dein Ziel ist es, Fehler in einem Gitter von Qubits zu finden und zu korrigieren.<br><img src='static/tutorial_1.png' style='width:80%;margin-top:12px;'>`,
             `In jeder Runde haben einige Qubits Fehler. Benutze deine Schaufel, um Qubits zu flippen und versuche, alle Sensoren auszuschalten.<br><img src='static/tutorial_2.png' style='width:80%;margin-top:12px;'>`,
             `Sensoren zeigen an, ob sich Fehler in der Nähe befinden. Wenn alle Sensoren aus sind, hast du alle detektierbaren Fehler entfernt.<br><img src='static/tutorial_3.png' style='width:80%;margin-top:12px;'>`,
             `Aber Vorsicht! Wenn du alle Syndrome entfernst, aber ein logischer Fehler bleibt, verlierst du die Runde.<br><b>Logischer Fehler:</b> Ein Fehler, der von den Sensoren nicht erkannt wird und die kodierte Information verändert.<br><img src='static/tutorial_4.png' style='width:80%;margin-top:12px;'>`,
             `Im Spielplatz-Modus kannst du Fehler manuell setzen und die Auswirkungen direkt beobachten.<br><img src='static/tutorial_5.png' style='width:80%;margin-top:12px;'>`,
             `Versuche, alle Fehler zu beseitigen, ohne einen logischen Fehler zu verursachen. Steige durch die Level für mehr Herausforderung!<br>Viel Erfolg!<br><img src='static/tutorial_6.png' style='width:80%;margin-top:12px;'>`
-        ];
+        ]);
         this.currentIndex = 0;
     }
 
     showTutorial() {
-        this.currentIndex = 0;
+    // Refresh slides to current language
+    if (window.i18n) this.slides = i18n.t('tutorial.slides');
+    this.currentIndex = 0;
         this.updateTutorialSlide();
         document.getElementById('tutorial-modal').style.display = 'block';
     }
@@ -146,14 +148,14 @@ class TutorialManager {
     }
 
     setupEventHandlers() {
-        document.getElementById('tutorial-prev').onclick = () => {
+    document.getElementById('tutorial-prev').onclick = () => {
             if (this.currentIndex > 0) {
                 this.currentIndex--;
                 this.updateTutorialSlide();
             }
         };
 
-        document.getElementById('tutorial-next').onclick = () => {
+    document.getElementById('tutorial-next').onclick = () => {
             if (this.currentIndex < this.slides.length - 1) {
                 this.currentIndex++;
                 this.updateTutorialSlide();

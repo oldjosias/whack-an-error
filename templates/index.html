@@ -8,12 +8,12 @@
     <link rel="stylesheet" href="static/css/game.css">
 </head>
 <body>
-    <h1 style="text-align:center; margin: 20px 0;">Fehler-Whack</h1>
+    <h1 style="text-align:center; margin: 20px 0;" data-i18n="app.title">Fehler-Whack</h1>
     
     <!-- Selection Panel -->
     <div id="selection-panel">
         <div style="text-align:center;">
-            <label for="d-select">Gittergröße:</label>
+            <label for="d-select" data-i18n="labels.grid_size">Gittergröße:</label>
             <select id="d-select">
                 <option value="3">3</option>
                 <option value="4">4</option>
@@ -22,15 +22,15 @@
                 <option value="7">7</option>
             </select>
             <br>
-            <label for="mode-select">Modus:</label>
+            <label for="mode-select" data-i18n="labels.mode">Modus:</label>
             <select id="mode-select">
-                <option value="game">Spiel</option>
-                <option value="playground">Spielplatz</option>
+                <option value="game" data-i18n="modes.game">Spiel</option>
+                <option value="playground" data-i18n="modes.playground">Spielplatz</option>
             </select>
             <br>
-            <button class="btn" onclick="window.gameController.startGame()">Starten</button>
-            <button class="btn" id="show-stats-btn">Statistiken anzeigen</button>
-            <button class="btn" id="show-tutorial-btn">Tutorial anzeigen</button>
+            <button class="btn" onclick="window.gameController.startGame()" data-i18n="buttons.start">Starten</button>
+            <button class="btn" id="show-stats-btn" data-i18n="buttons.stats">Statistiken anzeigen</button>
+            <button class="btn" id="show-tutorial-btn" data-i18n="buttons.tutorial">Tutorial anzeigen</button>
         </div>
     </div>
 
@@ -38,9 +38,7 @@
     <div id="status-panel">
         <div class="status" id="game-status"></div>
         <div class="status" id="status"></div>
-        <button class="btn" id="toggle-errors-btn" onclick="window.gameController.togglePlaygroundErrors()" style="display:none; margin-top: 10px;">
-            Fehler anzeigen
-        </button>
+    <button class="btn" id="toggle-errors-btn" onclick="window.gameController.togglePlaygroundErrors()" style="display:none; margin-top: 10px;">Fehler anzeigen</button>
     </div>
 
     <!-- Game Area -->
@@ -52,9 +50,7 @@
 
     <!-- Floating Reset Button -->
     <div id="floating-reset">
-        <button class="btn" style="background:#e94e77;" onclick="window.gameController.resetGame()">
-            Reset
-        </button>
+    <button class="btn" style="background:#e94e77;" onclick="window.gameController.resetGame()" data-i18n="buttons.reset">Reset</button>
     </div>
 
     <!-- Legend -->
@@ -62,29 +58,23 @@
 
     <!-- Statistics Modal -->
     <div id="stats-modal">
-        <h3>Logical Error Rate vs Physical Error Rate</h3>
+        <h3 data-i18n="stats.title">Logical Error Rate vs Physical Error Rate</h3>
         <div class="stats-buttons">
-            <button class="btn" id="stats-age-split-btn">
-                Show by Age Range
-            </button>
-            <button class="btn" id="stats-all-btn">Show All</button>
+            <button class="btn" id="stats-age-split-btn" data-i18n="buttons.showByAge">Show by Age Range</button>
+            <button class="btn" id="stats-all-btn" data-i18n="buttons.showAll">Show All</button>
         </div>
         <canvas id="stats-canvas" width="500" height="300"></canvas>
         <br>
-        <button class="btn" onclick="document.getElementById('stats-modal').style.display='none'">
-            Close
-        </button>
+        <button class="btn" onclick="document.getElementById('stats-modal').style.display='none'" data-i18n="buttons.close">Close</button>
     </div>
 
     <!-- Tutorial Modal -->
     <div id="tutorial-modal">
         <div id="tutorial-slide"></div>
         <div style="margin-top:18px; display:flex; justify-content:center; gap:16px;">
-            <button class="btn" id="tutorial-prev">Zurück</button>
-            <button class="btn" id="tutorial-next">Weiter</button>
-            <button class="btn" onclick="window.gameController.tutorialManager.closeTutorial()">
-                Schließen
-            </button>
+            <button class="btn" id="tutorial-prev" data-i18n="tutorial.prev">Zurück</button>
+            <button class="btn" id="tutorial-next" data-i18n="tutorial.next">Weiter</button>
+            <button class="btn" onclick="window.gameController.tutorialManager.closeTutorial()" data-i18n="buttons.close">Schließen</button>
         </div>
     </div>
 
@@ -96,6 +86,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="static/js/i18n.js"></script>
     <script src="static/js/game-state.js"></script>
     <script src="static/js/static-engine.js"></script>
     <script src="static/js/api-client.js"></script>
@@ -103,6 +94,8 @@
     <script src="static/js/managers.js"></script>
     <script src="static/js/game-controller.js"></script>
     <script>
+        // Init i18n first
+        window.i18n && window.i18n.init();
         // Initialize the application
         window.gameController = new GameController();
         

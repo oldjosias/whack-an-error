@@ -48,12 +48,12 @@ class GameController {
         this.gameState.startGame(mode, gridSize);
         
         if (this.gameState.playgroundMode) {
-            document.getElementById('game-status').textContent = 'Spielplatz-Modus: Fehler können manuell gesetzt werden.';
+            document.getElementById('game-status').textContent = i18n.t('statuses.playgroundIntro');
             document.getElementById('toggle-errors-btn').style.display = 'block';
-            document.getElementById('toggle-errors-btn').textContent = 'Fehler anzeigen';
+            document.getElementById('toggle-errors-btn').textContent = i18n.t('buttons.toggleErrors.show');
             await this.newPlayground();
         } else {
-            document.getElementById('game-status').textContent = `Level 1, Runde 1 von 5`;
+            document.getElementById('game-status').textContent = i18n.t('game.levelRound', { level: 1, round: 1, total: this.gameState.roundsPerLevel });
             document.getElementById('toggle-errors-btn').style.display = 'none';
             await this.newRound(true);
         }
@@ -105,7 +105,7 @@ class GameController {
     togglePlaygroundErrors() {
         this.gameState.playgroundShowErrors = !this.gameState.playgroundShowErrors;
         document.getElementById('toggle-errors-btn').textContent = 
-            this.gameState.playgroundShowErrors ? 'Fehler verbergen' : 'Fehler anzeigen';
+            this.gameState.playgroundShowErrors ? i18n.t('buttons.toggleErrors.hide') : i18n.t('buttons.toggleErrors.show');
         
         if (this.gameState.playgroundLastState) {
             this.renderer.renderGame(this.gameState.playgroundLastState, this.gameState);
@@ -179,7 +179,7 @@ class GameController {
         }
         
         document.getElementById('game-status').textContent = 
-            `Level ${this.gameState.currentLevel}, Runde ${this.gameState.currentRound} von 5`;
+            i18n.t('game.levelRound', { level: this.gameState.currentLevel, round: this.gameState.currentRound, total: this.gameState.roundsPerLevel });
         this.newRound(true);
     }
 
@@ -191,25 +191,29 @@ class GameController {
             (this.gameState.highscores[this.gameState.gridSize]?.level || 0);
         
         const hsMsg = isNewHighscore ? 
-            `<div style='color:#e94e77; font-weight:bold; margin-bottom:8px;'>Neuer Highscore!</div>` : '';
+            `<div style='color:#e94e77; font-weight:bold; margin-bottom:8px;'>${i18n.t('game.newHighscore')}</div>` : '';
         
         statusPanel.innerHTML = `
             <div class="status" id="game-status"></div>
             <div class="status" id="status"></div>
             ${hsMsg}
             <div style='font-size:1.2em; margin-top:18px;'>
-                Spiel beendet! Logischer Fehler in Level ${this.gameState.currentLevel}, Runde ${this.gameState.currentRound}.
+                ${i18n.t('game.overLine', { level: this.gameState.currentLevel, round: this.gameState.currentRound })}
             </div>
             <br>
-            <input id='player-name' type='text' placeholder='Name (optional)' 
+            <input id='player-name' type='text' 
+                data-i18n-placeholder='form.name' placeholder='Name (optional)'
                 style='margin-bottom:10px; width:90%; padding:6px; font-size:1em; border-radius:6px; border:1px solid #bbb;'>
             <br>
-            <input id='player-age' type='number' min='0' max='120' placeholder='Alter (optional)' 
+            <input id='player-age' type='number' min='0' max='120' 
+                data-i18n-placeholder='form.age' placeholder='Alter (optional)'
                 style='margin-bottom:10px; width:90%; padding:6px; font-size:1em; border-radius:6px; border:1px solid #bbb;'>
             <br>
-            <button id='save-yes' class='btn'>Speichern</button> 
-            <button id='save-no' class='btn' style='background:#e94e77;'>Verwerfen</button>
+            <button id='save-yes' class='btn' data-i18n='buttons.save'>Speichern</button> 
+            <button id='save-no' class='btn' style='background:#e94e77;' data-i18n='buttons.discard'>Verwerfen</button>
         `;
+        // Apply i18n for placeholders and buttons
+        if (window.i18n) i18n.apply();
         
         document.getElementById('save-yes').onclick = () => {
             this.storeGameData();
@@ -239,13 +243,13 @@ class GameController {
         
         popup.innerHTML = `
             <div style='color: #4a90e2; font-weight: bold; margin-bottom: 15px;'>
-                Level ${completedLevel} geschafft!
+                ${i18n.t('game.levelCompleted', { completed: completedLevel })}
             </div>
             <div style='margin-bottom: 20px;'>
-                In Level ${nextLevel} werden im Durchschnitt ${nextLevel} Fehler eingezeichnet.
+                ${i18n.t('game.nextLevelInfo', { next: nextLevel })}
             </div>
             <button id='start-next-level-btn' class='btn' style='font-size: 1.1em; padding: 10px 20px;'>
-                Level ${nextLevel} starten
+                ${i18n.t('game.startNextLevel', { next: nextLevel })}
             </button>
         `;
         
@@ -265,7 +269,7 @@ class GameController {
             
             // Continue with the next level
             document.getElementById('game-status').textContent = 
-                `Level ${this.gameState.currentLevel}, Runde ${this.gameState.currentRound} von 5`;
+                i18n.t('game.levelRound', { level: this.gameState.currentLevel, round: this.gameState.currentRound, total: this.gameState.roundsPerLevel });
             this.newRound(true);
         };
     }
@@ -288,7 +292,7 @@ class GameController {
             const result = await this.apiClient.storeGameData(gameData);
             const resultsPanel = document.getElementById('results-panel');
             let msg = resultsPanel.innerHTML;
-            msg += `<div style='margin-top:12px; color:#4a90e2;'>Saved as ${result.filename}</div>`;
+            msg += `<div style='margin-top:12px; color:#4a90e2;'>${i18n.t('savedAs', { filename: result.filename })}</div>`;
             resultsPanel.innerHTML = msg;
             document.getElementById('game-status').textContent = '';
             await this.fetchHighscores();
@@ -313,12 +317,13 @@ class GameController {
         
         let hsText = '';
         if (hs && hs.level > 0) {
+            const nm = hs.name || i18n.t('anonymousName');
             hsText = `<div id='highscore-info' style='margin-top:10px; color:#4a90e2;'>
-                Highscore: Level ${hs.level} (${hs.name || 'Anonym'})
+                ${i18n.t('highscore.title', { level: hs.level, name: nm })}
             </div>`;
         } else {
             hsText = `<div id='highscore-info' style='margin-top:10px; color:#4a90e2;'>
-                Noch kein Highscore
+                ${i18n.t('highscore.none')}
             </div>`;
         }
         
