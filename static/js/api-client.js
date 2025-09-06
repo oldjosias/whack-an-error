@@ -55,6 +55,22 @@ class ApiClient {
         return Promise.resolve(true);
     }
 
+    async getExportBundle() {
+        const data = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+        const highscores = JSON.parse(localStorage.getItem(this.highscoreKey) || '{}');
+        return Promise.resolve({
+            version: 'v1',
+            exported_at: new Date().toISOString(),
+            data,
+            highscores,
+        });
+    }
+
+    async clearHighscores() {
+        localStorage.removeItem(this.highscoreKey);
+        return Promise.resolve(true);
+    }
+
     async getStatistics(ageMin = null, ageMax = null) {
         // Build statistics from localStorage
         const arr = JSON.parse(localStorage.getItem(this.storageKey) || '[]');

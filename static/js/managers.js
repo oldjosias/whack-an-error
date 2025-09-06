@@ -43,16 +43,16 @@ class StatisticsManager {
             };
         }
 
-        if (dlBtn) {
+    if (dlBtn) {
             dlBtn.onclick = async () => {
                 try {
-                    const data = await this.apiClient.getAllData();
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const bundle = await this.apiClient.getExportBundle();
+            const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     const ts = new Date().toISOString().replace(/[:.]/g, '-');
-                    a.download = `whack-data-${ts}.json`;
+            a.download = `whack-export-${ts}.json`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -63,14 +63,19 @@ class StatisticsManager {
             };
         }
 
-        if (delBtn) {
+    if (delBtn) {
             delBtn.onclick = async () => {
                 try {
                     const confirmed = window.confirm(i18n?.t('stats.confirmDelete') || 'Delete all local data?');
                     if (!confirmed) return;
-                    await this.apiClient.clearData();
+            await this.apiClient.clearData();
+            await this.apiClient.clearHighscores();
                     // Refresh the plot to reflect empty dataset
                     this.fetchStatisticsAndShow();
+                    // Refresh highscores label in selection panel
+                    if (window.gameController && typeof window.gameController.fetchHighscores === 'function') {
+                        await window.gameController.fetchHighscores();
+                    }
                 } catch (err) {
                     console.error('Failed to delete data:', err);
                 }
