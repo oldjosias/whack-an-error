@@ -113,6 +113,13 @@ class DataManager:
                         label = f"{age_min}-{age_max}"
                         # Take the first (and only) entry since we're not grouping
                         result[label] = list(stats.values())[0]
+
+            # Unknown / missing age bucket
+            unknown_df = df[df['age'].astype(str).apply(lambda x: not str(x).isdigit())]
+            if not unknown_df.empty:
+                stats = self._calculate_statistics(unknown_df, group_by=None)
+                if stats:
+                    result['unknown'] = list(stats.values())[0]
             
             return result
             
@@ -141,6 +148,12 @@ class DataManager:
                     rounds_row = (int(row['rounds_per_level']) 
                                  if 'rounds_per_level' in row and str(row['rounds_per_level']).isdigit() 
                                  else len(success_row))
+                    # Levels actually played (0-indexed): only count rounds for levels reached
+                    level_reached = 0
+                    try:
+                        level_reached = int(row.get('level_reached', 0))
+                    except Exception:
+                        level_reached = 0
                     
                     if error_probs is None:
                         error_probs = error_probs_row
@@ -149,7 +162,9 @@ class DataManager:
                     
                     for i, (succ, p) in enumerate(zip(success_row, error_probs_row)):
                         agg_success[i] += succ
-                        agg_total[i] += rounds_row
+                        # Only add rounds to the denominator for levels that were actually played
+                        if i < level_reached:
+                            agg_total[i] += rounds_row
                         
                 except Exception:
                     continue

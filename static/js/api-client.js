@@ -68,19 +68,21 @@ class ApiClient {
                 const a = parseInt(e.age || '-1', 10);
                 return !Number.isNaN(a) && a >= lo && a <= hi;
             });
-            out[`${lo}-${hi}`] = this._buildStats(bucket)[String(this._inferMaxLevel(bucket))] || { physical_error_rates: [], logical_error_rates: [] };
+            out[`${lo}-${hi}`] = this._buildStatsAll(bucket);
         }
+        // Unknown age bucket
+        const unknown = arr.filter(e => Number.isNaN(parseInt(e.age || '-1', 10)));
+        out['unknown'] = this._buildStatsAll(unknown);
         return Promise.resolve(out);
     }
 
-    _inferMaxLevel(data) {
-        let maxLevel = 0;
-        for (const e of data) maxLevel = Math.max(maxLevel, e.rounds_per_level ? e.rounds_per_level : (e.level_reached || 0));
-        return maxLevel || 1;
+    _pickAnyGrid(stats) {
+        const keys = Object.keys(stats || {});
+        return keys.length ? keys[0] : '3';
     }
 
     _buildStats(data) {
-        // Group by grid size, estimate physical vs logical error rate from saved rounds
+        // Group by grid size and compute physical vs logical error rate using saved arrays
         const grouped = {};
         for (const e of data) {
             const key = String(e.grid_size);
@@ -89,22 +91,65 @@ class ApiClient {
         }
         const res = {};
         for (const key of Object.keys(grouped)) {
-            // naive aggregation: physical error rate ~ level/maxLevel, logical error rate ~ logical_errors/rounds
             const entries = grouped[key];
-            const maxLevel = entries[0]?.rounds_per_level ? entries[0].rounds_per_level : (parseInt(key,10) ** 2 + (parseInt(key,10)-1) ** 2);
-            const physical = [];
-            const logical = [];
+            // Use the first entry's error_probabilities to define x-axis; assume consistent per grid size
+            const first = entries.find(e => Array.isArray(e.error_probabilities));
+            const errorProbs = first ? first.error_probabilities : [];
+            const roundsPerLevel = first?.rounds_per_level || 5;
+
+            // Prepare aggregation arrays
+            const totalSuccess = Array(errorProbs.length).fill(0);
+            const totalRounds = Array(errorProbs.length).fill(0);
+
             for (const e of entries) {
-                const phys = (e.level_reached || 1) / maxLevel;
-                const logi = (e.logical_errors || 0) / ((e.rounds_per_level || 5) * (e.level_reached || 1));
-                physical.push(phys);
-                logical.push(Math.min(1, Math.max(0, logi)));
+                const succ = Array.isArray(e.successful_rounds_per_level) ? e.successful_rounds_per_level : [];
+                const lvlReached = parseInt(e.level_reached || 0, 10) || 0;
+                const rounds = parseInt(e.rounds_per_level || roundsPerLevel, 10) || roundsPerLevel;
+                for (let i = 0; i < Math.min(succ.length, errorProbs.length); i++) {
+                    totalSuccess[i] += (succ[i] || 0);
+                    if (i < lvlReached) totalRounds[i] += rounds;
+                }
             }
+
+            const logicalRates = errorProbs.map((_, i) => {
+                const denom = totalRounds[i] || 0;
+                const succ = totalSuccess[i] || 0;
+                const successRate = denom > 0 ? (succ / denom) : 0;
+                return 1 - successRate;
+            });
+
             res[key] = {
-                physical_error_rates: physical,
-                logical_error_rates: logical,
+                physical_error_rates: errorProbs,
+                logical_error_rates: logicalRates,
             };
         }
         return res;
+    }
+
+    _buildStatsAll(data) {
+        // Combine across all grid sizes into a single dataset
+        if (!data.length) return { physical_error_rates: [], logical_error_rates: [] };
+        // Use the first entry defining error probabilities
+        const first = data.find(e => Array.isArray(e.error_probabilities));
+        const errorProbs = first ? first.error_probabilities : [];
+        const roundsPerLevel = first?.rounds_per_level || 5;
+        const totalSuccess = Array(errorProbs.length).fill(0);
+        const totalRounds = Array(errorProbs.length).fill(0);
+        for (const e of data) {
+            const succ = Array.isArray(e.successful_rounds_per_level) ? e.successful_rounds_per_level : [];
+            const lvlReached = parseInt(e.level_reached || 0, 10) || 0;
+            const rounds = parseInt(e.rounds_per_level || roundsPerLevel, 10) || roundsPerLevel;
+            for (let i = 0; i < Math.min(succ.length, errorProbs.length); i++) {
+                totalSuccess[i] += (succ[i] || 0);
+                if (i < lvlReached) totalRounds[i] += rounds;
+            }
+        }
+        const logicalRates = errorProbs.map((_, i) => {
+            const denom = totalRounds[i] || 0;
+            const succ = totalSuccess[i] || 0;
+            const successRate = denom > 0 ? (succ / denom) : 0;
+            return 1 - successRate;
+        });
+        return { physical_error_rates: errorProbs, logical_error_rates: logicalRates };
     }
 }
