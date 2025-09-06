@@ -137,47 +137,57 @@ class DataManager:
             groups = [('all', df)]
         
         for label, group in groups:
-            agg_success = None
-            agg_total = None
-            error_probs = None
-            
-            for _, row in group.iterrows():
-                try:
-                    error_probs_row = eval(row['error_probabilities'])
-                    success_row = eval(row['successful_rounds_per_level'])
-                    rounds_row = (int(row['rounds_per_level']) 
-                                 if 'rounds_per_level' in row and str(row['rounds_per_level']).isdigit() 
-                                 else len(success_row))
-                    # Levels actually played (0-indexed): only count rounds for levels reached
-                    level_reached = 0
+            try:
+                # Define a consistent x-axis per group
+                if group_by == 'grid_size':
+                    d = int(label)
+                    n = d * d + (d - 1) * (d - 1)
+                else:
+                    # Mixed grid sizes: choose the smallest n to ensure common support
+                    n_values = []
+                    for _, row in group.iterrows():
+                        try:
+                            d = int(row['grid_size'])
+                            n_values.append(d * d + (d - 1) * (d - 1))
+                        except Exception:
+                            continue
+                    if not n_values:
+                        continue
+                    n = min(n_values)
+
+                max_idx = n // 2
+                error_probs = [(i + 1) / n for i in range(max_idx)]
+                agg_success = [0] * max_idx
+                agg_total = [0] * max_idx
+
+                for _, row in group.iterrows():
                     try:
-                        level_reached = int(row.get('level_reached', 0))
+                        success_row = eval(row['successful_rounds_per_level'])
+                        rounds_row = (int(row['rounds_per_level']) 
+                                      if 'rounds_per_level' in row and str(row['rounds_per_level']).isdigit() 
+                                      else len(success_row))
+                        try:
+                            level_reached = int(row.get('level_reached', 0))
+                        except Exception:
+                            level_reached = 0
+
+                        for i in range(min(len(success_row), max_idx)):
+                            agg_success[i] += success_row[i]
+                            if i < level_reached:
+                                agg_total[i] += rounds_row
                     except Exception:
-                        level_reached = 0
-                    
-                    if error_probs is None:
-                        error_probs = error_probs_row
-                        agg_success = [0] * len(error_probs)
-                        agg_total = [0] * len(error_probs)
-                    
-                    for i, (succ, p) in enumerate(zip(success_row, error_probs_row)):
-                        agg_success[i] += succ
-                        # Only add rounds to the denominator for levels that were actually played
-                        if i < level_reached:
-                            agg_total[i] += rounds_row
-                        
-                except Exception:
-                    continue
-            
-            if error_probs is not None:
+                        continue
+
                 logical_error_rates = [
                     1 - (agg_success[i] / agg_total[i] if agg_total[i] > 0 else 0)
-                    for i in range(len(error_probs))
+                    for i in range(max_idx)
                 ]
                 result[label] = {
                     'physical_error_rates': error_probs,
                     'logical_error_rates': logical_error_rates
                 }
+            except Exception:
+                continue
         
         return result
     
