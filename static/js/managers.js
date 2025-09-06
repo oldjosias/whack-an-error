@@ -22,6 +22,8 @@ class StatisticsManager {
         // Set up event handlers for modal buttons when modal is displayed
         const ageSplitBtn = document.getElementById('stats-age-split-btn');
         const allBtn = document.getElementById('stats-all-btn');
+    const dlBtn = document.getElementById('stats-download-btn');
+    const delBtn = document.getElementById('stats-delete-btn');
         const closeBtn = document.querySelector('#stats-modal .close');
         
         if (ageSplitBtn) {
@@ -38,6 +40,40 @@ class StatisticsManager {
         if (allBtn) {
             allBtn.onclick = () => {
                 this.fetchStatisticsAndShow();
+            };
+        }
+
+        if (dlBtn) {
+            dlBtn.onclick = async () => {
+                try {
+                    const data = await this.apiClient.getAllData();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+                    a.download = `whack-data-${ts}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (err) {
+                    console.error('Failed to download data:', err);
+                }
+            };
+        }
+
+        if (delBtn) {
+            delBtn.onclick = async () => {
+                try {
+                    const confirmed = window.confirm(i18n?.t('stats.confirmDelete') || 'Delete all local data?');
+                    if (!confirmed) return;
+                    await this.apiClient.clearData();
+                    // Refresh the plot to reflect empty dataset
+                    this.fetchStatisticsAndShow();
+                } catch (err) {
+                    console.error('Failed to delete data:', err);
+                }
             };
         }
 

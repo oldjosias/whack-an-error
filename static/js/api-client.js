@@ -44,6 +44,17 @@ class ApiClient {
         return Promise.resolve(hs);
     }
 
+    // Utility: export and clear local dataset (static mode)
+    async getAllData() {
+        const arr = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+        return Promise.resolve(arr);
+    }
+
+    async clearData() {
+        localStorage.removeItem(this.storageKey);
+        return Promise.resolve(true);
+    }
+
     async getStatistics(ageMin = null, ageMax = null) {
         // Build statistics from localStorage
         const arr = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
