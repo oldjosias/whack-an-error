@@ -2,11 +2,17 @@
 
 /* Base Layout */
 body { 
-    font-family: sans-serif; 
+    /* Kid-friendly, pixel/retro vibe */
+    font-family: "Pixelify Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
     background: #f7f7fa; 
     margin: 0;
     padding: 0;
     min-height: 100vh;
+}
+
+h1, h2, h3 {
+    font-family: "Press Start 2P", "Pixelify Sans", monospace;
+    letter-spacing: 0.5px;
 }
 
 .game-area-container {
@@ -57,7 +63,7 @@ body {
     background-repeat: repeat;
     background-size: 50px 50px;
     border-radius: 0px;
-    box-shadow: 0 2px 12px #bbb;
+    box-shadow: 4px 4px 0 #b5b5b5;
     transition: width 0.3s ease, height 0.3s ease;
     flex-shrink: 0;
 }
@@ -108,22 +114,28 @@ body {
 .btn { 
     margin: 16px auto; 
     display: block; 
-    padding: 8px 24px; 
-    font-size: 1em; 
-    border-radius: 8px; 
-    border: none; 
+    padding: 10px 24px; 
+    font-size: 0.95em; 
+    font-family: "Press Start 2P", "Pixelify Sans", monospace;
+    border-radius: 0; 
+    border: 4px solid #2b2b2b; 
     background: #4a90e2; 
     color: white; 
     cursor: pointer; 
+    box-shadow: 4px 4px 0 #0f2a44;
+    text-transform: none;
 }
 
 .btn:hover {
     background: #357abd;
+    transform: translate(-1px, -1px);
+    box-shadow: 6px 6px 0 #0f2a44;
 }
 
 .btn:disabled {
     background: #ccc;
     cursor: not-allowed;
+    box-shadow: 4px 4px 0 #999;
 }
 
 .status { 
@@ -139,8 +151,9 @@ body {
     top: 80px;
     transform: translateX(-50%);
     background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 2px 16px #bbb;
+    border-radius: 0;
+    border: 4px solid #2b2b2b;
+    box-shadow: 6px 6px 0 #b5b5b5;
     padding: 32px 32px 24px 32px;
     z-index: 200;
     transition: opacity 0.7s, visibility 0.7s;
@@ -162,8 +175,9 @@ body {
     top: 140px;
     transform: translateX(-50%);
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px #bbb;
+    border-radius: 0;
+    border: 4px solid #2b2b2b;
+    box-shadow: 6px 6px 0 #b5b5b5;
     padding: 16px;
     z-index: 250;
 }
@@ -175,8 +189,9 @@ body {
     top: 120px;
     transform: translateX(-50%);
     background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 2px 16px #bbb;
+    border-radius: 0;
+    border: 4px solid #2b2b2b;
+    box-shadow: 6px 6px 0 #b5b5b5;
     padding: 32px 32px 24px 32px;
     z-index: 300;
     text-align: center;
@@ -198,8 +213,9 @@ body {
     z-index: 400;
     text-align: left;
     background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 12px #bbb;
+    border-radius: 0;
+    border: 4px solid #2b2b2b;
+    box-shadow: 6px 6px 0 #b5b5b5;
     padding: 18px 24px;
     font-size: 1.1em;
     display: flex;
@@ -227,8 +243,9 @@ body {
     top: 120px;
     transform: translateX(-50%);
     background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 2px 16px #bbb;
+    border-radius: 0;
+    border: 4px solid #2b2b2b;
+    box-shadow: 6px 6px 0 #b5b5b5;
     padding: 32px 32px 24px 32px;
     z-index: 1000;
     text-align: center;
@@ -281,10 +298,11 @@ body {
 
 /* Form Elements */
 select, input[type="text"], input[type="number"] {
-    padding: 6px;
+    padding: 8px 10px;
     font-size: 1em;
-    border-radius: 6px;
-    border: 1px solid #bbb;
+    font-family: "Press Start 2P", "Pixelify Sans", monospace;
+    border-radius: 0;
+    border: 3px solid #2b2b2b;
     margin-bottom: 10px;
 }
 
@@ -420,24 +438,24 @@ label {
     
     .btn {
         padding: 8px 16px;
-        font-size: 0.9em;
+        font-size: 0.8em;
     }
 }
 
 @media (max-width: 480px) {
     .game-area-container {
         margin: 8px auto;
-        flex-direction: column;
+        /* Keep side water visible; remain in row layout */
+        flex-direction: row;
         align-items: center;
     }
-    
-    #dirt-left, #dirt-right {
-        display: none;
-    }
-    
+
+    /* Keep water visible; no display: none here */
+
     #surface-code-area {
-        width: 95vw;
-        height: 95vw;
+        /* Fit between two 50px side panels + some gutter */
+        width: calc(100vw - 140px);
+        height: calc(100vw - 140px);
         max-width: 320px;
         max-height: 320px;
     }
