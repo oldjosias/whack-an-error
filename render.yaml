@@ -1,8 +1,6 @@
 services:
-  - type: web
-    name: whack-an-error
+  - name: whack-an-error
     env: python
-    region: frankfurt
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
