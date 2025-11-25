@@ -52,7 +52,8 @@
       margin-bottom: 8px;
       font-weight: 600;
     }
-    select {
+    select,
+    input[type="text"] {
       width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
@@ -341,6 +342,9 @@
       <h1>Whack-an-Error</h1>
       <p class="subtitle">Explore the surface-code correction loop. Flip qubits to clear the syndrome without inducing a logical error.</p>
 
+      <label for="player-name">Your name</label>
+      <input id="player-name" type="text" placeholder="Optional" maxlength="100" />
+
       <label for="config-d">Code distance (d)</label>
       <select id="config-d" aria-label="Select code distance">
         {% for value in grid_sizes %}
@@ -431,6 +435,7 @@
       const nextRoundBtn = document.getElementById('next-round');
       const selectD = document.getElementById('config-d');
       const selectRounds = document.getElementById('config-rounds');
+      const playerNameInput = document.getElementById('player-name');
       const boardEl = document.getElementById('board');
       const statusLine = document.getElementById('status-line');
       const levelLabel = document.getElementById('level-label');
@@ -456,6 +461,7 @@
         qubitButtons: [],
         stabilizerWidgets: [],
         sessionId: null,
+        playerName: null,
         levelIndex: 0,
         levels: defaultLevels.slice(),
         levelStats: null,
@@ -715,7 +721,9 @@
         state.qubitButtons = [];
         state.stabilizerWidgets = [];
         state.sessionId = null;
+        state.playerName = null;
         state.levelIndex = 0;
+        state.levels = defaultLevels.slice();
         state.levelStats = null;
         state.levelsData = [];
         state.current = null;
@@ -744,7 +752,9 @@
             targetInteractiveRounds = selectedRounds;
           }
         }
+        const playerName = playerNameInput ? playerNameInput.value.trim() : '';
         resetState();
+        state.playerName = playerName ? playerName : null;
         state.running = true;
         state.surface = new SurfaceCode(distance);
         state.sessionId = uuid();
@@ -752,7 +762,8 @@
         if (selectRounds) {
           selectRounds.disabled = true;
         }
-        addLog('New session ' + state.sessionId + ' started with d=' + distance + '.');
+        const sessionLog = 'New session ' + state.sessionId + ' started with d=' + distance + (state.playerName ? ' for ' + state.playerName : '') + '.';
+        addLog(sessionLog);
         buildBoard(state.surface);
         renderStats();
         advanceLevel();
@@ -830,11 +841,13 @@
       }
 
       function finishLevel() {
+        const totalRounds = state.levelStats.withSyndrome + state.levelStats.withoutSyndrome;
         state.levelsData.push({
           probability: state.levelStats.probability,
           interactive_rounds: state.levelStats.withSyndrome,
           no_syndrome_rounds: state.levelStats.withoutSyndrome,
-          logical_errors: state.levelStats.logicalErrors,
+          total_rounds: totalRounds,
+          logical_failures: state.levelStats.logicalErrors,
           events: state.levelStats.events,
         });
         addLog('Level ' + (state.levelIndex + 1) + ' completed.');
@@ -854,18 +867,25 @@
         setStatus('All levels completed. Saving summary.', false);
         addLog('Session complete - preparing summary.');
 
-        const totals = state.levelsData.reduce((acc, level) => {
-          acc.logical_errors += level.logical_errors;
-          acc.interactive_rounds += level.interactive_rounds;
-          acc.no_syndrome_rounds += level.no_syndrome_rounds;
+        const probabilityStats = state.levelsData.map((level) => ({
+          probability: level.probability,
+          total_rounds: level.total_rounds,
+          logical_failures: level.logical_failures,
+        }));
+
+        const totals = probabilityStats.reduce((acc, entry) => {
+          acc.total_rounds += entry.total_rounds;
+          acc.logical_failures += entry.logical_failures;
           return acc;
-        }, { logical_errors: 0, interactive_rounds: 0, no_syndrome_rounds: 0 });
+        }, { total_rounds: 0, logical_failures: 0 });
 
         const summary = {
           session_id: state.sessionId,
+          name: state.playerName,
           grid_size: state.surface ? state.surface.d : null,
           rounds_per_level: targetInteractiveRounds,
           error_probabilities: state.levels,
+          probability_stats: probabilityStats,
           totals,
           levels: state.levelsData,
         };
@@ -875,12 +895,10 @@
 
         const payload = {
           uid: state.sessionId,
+          name: state.playerName,
           grid_size: summary.grid_size,
           error_probabilities: summary.error_probabilities,
-          successful_rounds_per_level: { levels: summary.levels, totals: summary.totals },
-          rounds_per_level: summary.rounds_per_level,
-          level_reached: summary.levels.length,
-          logical_errors: summary.totals.logical_errors,
+          probability_stats: probabilityStats,
         };
 
         fetch('/api/game/save', {

@@ -1,31 +1,26 @@
-"""
-Database Module for Whack-an-Error
-PostgreSQL storage using SQLAlchemy
-"""
+"""Database Module for Whack-an-Error."""
+
 import os
-from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text
+from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
-import json
 
 Base = declarative_base()
 
 
 class GameData(Base):
-    """Game data model"""
-    __tablename__ = 'game_data'
-    
-    uid = Column(String(8), primary_key=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    """Persisted aggregate data for a surface-code session."""
+
+    __tablename__ = "game_data"
+
+    uid = Column(String(36), primary_key=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     name = Column(String(100))
-    age = Column(Integer, nullable=True)
-    grid_size = Column(Integer)
-    error_probabilities = Column(Text)  # JSON string
-    successful_rounds_per_level = Column(Text)  # JSON string
-    rounds_per_level = Column(Integer)
-    level_reached = Column(Integer)
-    logical_errors = Column(Integer)
+    grid_size = Column(Integer, nullable=False)
+    error_probabilities = Column(Text, nullable=False)
+    probability_stats = Column(Text, nullable=False)
 
 
 class DatabaseManager:

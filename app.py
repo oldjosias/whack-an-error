@@ -58,6 +58,39 @@ def _parse_json_array(raw_value, coercer):
     return output
 
 
+def _parse_probability_stats(raw_value):
+    """Standardise aggregated probability stats sent by the client."""
+
+    if raw_value is None:
+        return []
+    if isinstance(raw_value, str):
+        try:
+            raw_value = json.loads(raw_value)
+        except json.JSONDecodeError:
+            return []
+    if not isinstance(raw_value, list):
+        return []
+
+    stats = []
+    for item in raw_value:
+        if not isinstance(item, dict):
+            continue
+        try:
+            probability = float(item.get("probability"))
+            total_rounds = int(item.get("total_rounds"))
+            logical_failures = int(item.get("logical_failures"))
+        except (TypeError, ValueError):
+            continue
+        stats.append(
+            {
+                "probability": round(probability, 6),
+                "total_rounds": max(total_rounds, 0),
+                "logical_failures": max(logical_failures, 0),
+            }
+        )
+    return stats
+
+
 def _serialize_game(game: GameData) -> dict:
     """Convert database rows into plain dicts for JSON responses."""
 
@@ -73,13 +106,9 @@ def _serialize_game(game: GameData) -> dict:
         "uid": game.uid,
         "timestamp": game.timestamp.isoformat() if game.timestamp else None,
         "name": game.name,
-        "age": game.age,
         "grid_size": game.grid_size,
         "error_probabilities": _load_json(game.error_probabilities),
-        "successful_rounds_per_level": _load_json(game.successful_rounds_per_level),
-        "rounds_per_level": game.rounds_per_level,
-        "level_reached": game.level_reached,
-        "logical_errors": game.logical_errors,
+        "probability_stats": _load_json(game.probability_stats),
     }
 
 
@@ -126,27 +155,29 @@ def api_game_data():
 @app.route("/api/game/save", methods=["POST"])
 def api_game_save():
     payload = request.get_json(silent=True) or {}
-    uid = (payload.get("uid") or uuid.uuid4().hex)[:8]
-    grid_size = payload.get("grid_size")
-    error_probabilities = _parse_json_array(payload.get("error_probabilities"), float)
-    successful_rounds = payload.get("successful_rounds_per_level") or {}
+    uid = payload.get("uid") or uuid.uuid4().hex
+
     try:
-        rounds_per_level = int(payload.get("rounds_per_level", DEFAULT_ROUNDS_PER_LEVEL))
+        grid_size = int(payload.get("grid_size"))
     except (TypeError, ValueError):
-        rounds_per_level = DEFAULT_ROUNDS_PER_LEVEL
-    level_reached = payload.get("level_reached", len(error_probabilities))
-    logical_errors = payload.get("logical_errors", 0)
+        grid_size = None
+    if grid_size not in ALLOWED_GRID_SIZES:
+        return jsonify({"status": "error", "message": "invalid grid_size"}), 400
+
+    error_probabilities = _parse_json_array(payload.get("error_probabilities"), float)
+    probability_stats = _parse_probability_stats(payload.get("probability_stats"))
+    if not probability_stats and error_probabilities:
+        probability_stats = [
+            {"probability": round(value, 6), "total_rounds": 0, "logical_failures": 0}
+            for value in error_probabilities
+        ]
 
     record = GameData(
         uid=uid,
         name=payload.get("name"),
-        age=payload.get("age"),
         grid_size=grid_size,
         error_probabilities=json.dumps(error_probabilities),
-        successful_rounds_per_level=json.dumps(successful_rounds),
-        rounds_per_level=rounds_per_level,
-        level_reached=level_reached,
-        logical_errors=logical_errors,
+        probability_stats=json.dumps(probability_stats),
     )
 
     try:
