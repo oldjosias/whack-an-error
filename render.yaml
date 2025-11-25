@@ -11,9 +11,13 @@ services:
         value: 3.11.0
       - key: FLASK_ENV
         value: production
-      - key: DATA_DIR
-        value: /data
-    disk:
-      name: whack-data
-      mountPath: /data
-      sizeGB: 1
+      - key: DATABASE_URL
+        fromDatabase:
+          name: whack-an-error-db
+          property: connectionString
+
+databases:
+  - name: whack-an-error-db
+    databaseName: whack_error_db
+    user: whack_user
+    plan: free

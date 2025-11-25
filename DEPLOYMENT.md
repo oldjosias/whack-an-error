@@ -8,39 +8,36 @@
 
 ```bash
 git add .
-git commit -m "Add Render deployment configuration"
+git commit -m "Add Render + PostgreSQL deployment configuration"
 git push origin main
 ```
 
 ## Step 2: Deploy on Render
 
-### Option A: Using render.yaml (Recommended)
+### Using render.yaml (Recommended - Auto-creates Database!)
 
 1. Go to https://dashboard.render.com
 2. Click "New +" → "Blueprint"
 3. Connect your GitHub repository `oldjosias/whack-an-error`
-4. Render will automatically detect `render.yaml` and configure the service
+4. Render will automatically:
+   - Create a PostgreSQL database (free tier)
+   - Create the web service
+   - Link them together with DATABASE_URL
 5. Click "Apply" to deploy
 
-### Option B: Manual Setup
-
-1. Go to https://dashboard.render.com
-2. Click "New +" → "Web Service"
-3. Connect your GitHub repository
-4. Configure:
-   - **Name**: whack-an-error
-   - **Region**: Frankfurt (or closest to you)
-   - **Branch**: main
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app`
-5. Click "Create Web Service"
+**That's it!** The database is created automatically and data persists forever (free tier includes 90 days of data retention after last access).
 
 ## Step 3: Get Your API URL
 
 After deployment completes (2-3 minutes), you'll get a URL like:
 ```
 https://whack-an-error.onrender.com
+```
+
+Test it:
+```bash
+curl https://whack-an-error.onrender.com/api/health
+# Should return: {"status": "ok"}
 ```
 
 ## Step 4: Update Frontend to Use Render Backend
@@ -71,24 +68,47 @@ git push origin main
            │ CORS-enabled
            │ API calls
            ▼
-┌─────────────────────┐
-│  Render.com         │
-│  (Flask Backend)    │
-│  *.onrender.com     │
-└─────────────────────┘
+┌─────────────────────┐      ┌──────────────────┐
+│  Render Web Service │─────▶│  PostgreSQL DB   │
+│  (Flask Backend)    │      │  (Free Tier)     │
+│  *.onrender.com     │      │  90 days storage │
+└─────────────────────┘      └──────────────────┘
 ```
+
+## Data Storage - PostgreSQL Benefits
+
+✅ **Persistent**: Data never gets lost (unlike ephemeral file storage)  
+✅ **Shared**: All users see the same highscores and statistics  
+✅ **Free**: PostgreSQL free tier included with Render  
+✅ **Automatic**: Database created and linked via render.yaml  
+✅ **Local fallback**: App uses SQLite locally if no DATABASE_URL
+
+The app automatically detects if DATABASE_URL exists:
+- **On Render**: Uses PostgreSQL for shared, persistent storage
+- **Locally**: Uses SQLite (whack_error.db) or CSV for testing
 
 ## Important Notes
 
-### Free Tier Limitations
-- Service spins down after 15 minutes of inactivity
+### Free Tier Benefits
+- PostgreSQL database with 1GB storage (way more than needed)
+- 90 days of data retention after last access
+- Web service spins down after 15 minutes of inactivity
 - First request after spin-down takes ~30 seconds
-- 750 hours/month free (enough for personal projects)
+- **Data persists** even when service is spun down
 
-### Data Persistence
-- `data.csv` is stored in ephemeral storage
-- Data will be lost when the service restarts
-- For permanent storage, upgrade to paid tier with persistent disk, or use a database
+### Migrating Existing CSV Data (Optional)
+
+If you have existing CSV data you want to migrate:
+
+1. Deploy to Render first (database will be created)
+2. Get your DATABASE_URL from Render dashboard
+3. Run locally:
+```bash
+export DATABASE_URL="postgresql://..."  # Your Render database URL
+python migrate.py
+```
+
+This is optional - the app works fine starting fresh!
 
 ### Environment Variables (Optional)
 If you need to add environment variables:
