@@ -352,6 +352,13 @@
         {% endfor %}
       </select>
 
+      <label for="config-levels">Levels per run</label>
+      <select id="config-levels" aria-label="Select number of levels">
+        {% for value in allowed_level_counts %}
+        <option value="{{ value }}" {% if value == level_count %}selected{% endif %}>{{ value }} levels</option>
+        {% endfor %}
+      </select>
+
       <div class="actions">
         <button type="button" class="primary" id="start-game">Start Game</button>
         <button type="button" class="secondary" id="show-data">Show Data</button>
@@ -413,6 +420,10 @@
     {{ {
       "grid_sizes": grid_sizes,
       "levels": levels,
+      "level_count": level_count,
+      "allowed_level_counts": allowed_level_counts,
+      "level_bounds": level_bounds,
+      "level_precision": level_precision,
       "rounds_per_level": rounds_per_level,
       "allowed_rounds": allowed_rounds
     } | tojson }}
@@ -421,8 +432,48 @@
   <script>
     (function() {
       const config = JSON.parse(document.getElementById('config-data').textContent);
-      const allowedSizes = config.grid_sizes;
-      const defaultLevels = config.levels;
+      const allowedSizes = Array.isArray(config.grid_sizes) ? config.grid_sizes : [];
+      const defaultLevels = Array.isArray(config.levels) ? config.levels : [];
+      const boundsArray = Array.isArray(config.level_bounds) ? config.level_bounds : [];
+      const minProbability = Number(boundsArray[0]);
+      const maxProbability = Number(boundsArray[1]);
+      const precisionValue = Number(config.level_precision);
+      const levelPrecision = Number.isInteger(precisionValue) && precisionValue >= 0 ? precisionValue : 3;
+      const allowedLevelCounts = (config.allowed_level_counts || [])
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value > 0)
+        .sort((a, b) => a - b);
+      const rawLevelCount = Number(config.level_count);
+
+      function generateLevels(count) {
+        const min = Number.isFinite(minProbability) ? minProbability : 0.01;
+        const max = Number.isFinite(maxProbability) ? maxProbability : min;
+        const precision = levelPrecision;
+        const safeCount = Math.max(1, Math.floor(Number(count) || 0));
+        if (safeCount === 1 || max === min) {
+          return [Number(min.toFixed(precision))];
+        }
+        const step = (max - min) / (safeCount - 1);
+        const levels = [];
+        for (let i = 0; i < safeCount; i += 1) {
+          const value = min + step * i;
+          levels.push(Number(value.toFixed(precision)));
+        }
+        return levels;
+      }
+
+      let selectedLevelCount = Number.isFinite(rawLevelCount) ? Math.max(1, Math.floor(rawLevelCount)) : (defaultLevels.length || 3);
+      if (allowedLevelCounts.length && !allowedLevelCounts.includes(selectedLevelCount)) {
+        selectedLevelCount = allowedLevelCounts[0];
+      } else if (!allowedLevelCounts.length && selectedLevelCount < 1) {
+        selectedLevelCount = 1;
+      }
+
+      let initialLevels = defaultLevels.slice();
+      if (initialLevels.length !== selectedLevelCount) {
+        initialLevels = generateLevels(selectedLevelCount);
+      }
+
       const allowedRoundOptions = (config.allowed_rounds || []).map((value) => Number(value));
       let targetInteractiveRounds = Number(config.rounds_per_level);
       if (!Number.isFinite(targetInteractiveRounds) || !allowedRoundOptions.includes(targetInteractiveRounds)) {
@@ -435,6 +486,7 @@
       const nextRoundBtn = document.getElementById('next-round');
       const selectD = document.getElementById('config-d');
       const selectRounds = document.getElementById('config-rounds');
+      const selectLevels = document.getElementById('config-levels');
       const playerNameInput = document.getElementById('player-name');
       const boardEl = document.getElementById('board');
       const statusLine = document.getElementById('status-line');
@@ -454,6 +506,9 @@
       if (selectRounds) {
         selectRounds.value = String(targetInteractiveRounds);
       }
+      if (selectLevels) {
+        selectLevels.value = String(selectedLevelCount);
+      }
 
       const state = {
         running: false,
@@ -463,7 +518,8 @@
         sessionId: null,
         playerName: null,
         levelIndex: 0,
-        levels: defaultLevels.slice(),
+        levels: initialLevels.slice(),
+        levelCount: selectedLevelCount,
         levelStats: null,
         levelsData: [],
         current: null,
@@ -715,6 +771,34 @@
         renderStats();
       }
 
+      function handleLevelsChange() {
+        if (!selectLevels) {
+          return;
+        }
+        const chosen = Number.parseInt(selectLevels.value, 10);
+        if (!Number.isFinite(chosen)) {
+          selectLevels.value = String(selectedLevelCount);
+          return;
+        }
+        const normalized = Math.max(1, Math.floor(chosen));
+        if (allowedLevelCounts.length && !allowedLevelCounts.includes(normalized)) {
+          selectLevels.value = String(selectedLevelCount);
+          return;
+        }
+        if (state.running) {
+          selectLevels.value = String(selectedLevelCount);
+          return;
+        }
+        if (selectedLevelCount === normalized) {
+          return;
+        }
+        selectedLevelCount = normalized;
+        state.levelCount = normalized;
+        state.levels = generateLevels(normalized);
+        addLog('Levels per run set to ' + normalized + '.');
+        renderStats();
+      }
+
       function resetState() {
         state.running = false;
         state.surface = null;
@@ -723,7 +807,8 @@
         state.sessionId = null;
         state.playerName = null;
         state.levelIndex = 0;
-        state.levels = defaultLevels.slice();
+        state.levelCount = selectedLevelCount;
+        state.levels = generateLevels(selectedLevelCount);
         state.levelStats = null;
         state.levelsData = [];
         state.current = null;
@@ -736,6 +821,10 @@
         clearBoard();
         if (selectRounds) {
           selectRounds.disabled = false;
+        }
+        if (selectLevels) {
+          selectLevels.disabled = false;
+          selectLevels.value = String(selectedLevelCount);
         }
         startBtn.disabled = false;
       }
@@ -752,6 +841,15 @@
             targetInteractiveRounds = selectedRounds;
           }
         }
+        if (selectLevels) {
+          const selectedLevels = Number.parseInt(selectLevels.value, 10);
+          if (Number.isFinite(selectedLevels)) {
+            const normalized = Math.max(1, Math.floor(selectedLevels));
+            if (!allowedLevelCounts.length || allowedLevelCounts.includes(normalized)) {
+              selectedLevelCount = normalized;
+            }
+          }
+        }
         const playerName = playerNameInput ? playerNameInput.value.trim() : '';
         resetState();
         state.playerName = playerName ? playerName : null;
@@ -761,6 +859,9 @@
         startBtn.disabled = true;
         if (selectRounds) {
           selectRounds.disabled = true;
+        }
+        if (selectLevels) {
+          selectLevels.disabled = true;
         }
         const sessionLog = 'New session ' + state.sessionId + ' started with d=' + distance + (state.playerName ? ' for ' + state.playerName : '') + '.';
         addLog(sessionLog);
@@ -864,6 +965,9 @@
         if (selectRounds) {
           selectRounds.disabled = false;
         }
+        if (selectLevels) {
+          selectLevels.disabled = false;
+        }
         setStatus('All levels completed. Saving summary.', false);
         addLog('Session complete - preparing summary.');
 
@@ -965,6 +1069,9 @@
 
       if (selectRounds) {
         selectRounds.addEventListener('change', handleRoundsChange);
+      }
+      if (selectLevels) {
+        selectLevels.addEventListener('change', handleLevelsChange);
       }
 
       startBtn.addEventListener('click', startGame);

@@ -20,9 +20,30 @@ app = Flask(__name__)
 db_manager = DatabaseManager()
 
 ALLOWED_GRID_SIZES = (3, 4, 5, 6, 7)
-DEFAULT_LEVELS = [round(0.01 + i * (0.15 - 0.01) / 9, 3) for i in range(10)]
+LEVEL_MIN_PROBABILITY = 0.01
+LEVEL_MAX_PROBABILITY = 0.15
+LEVEL_PRECISION = 3
+ALLOWED_LEVEL_COUNTS = tuple(range(3, 11))
+DEFAULT_LEVEL_COUNT = 10
 ALLOWED_ROUNDS_PER_LEVEL = (1, 3, 5, 7)
 DEFAULT_ROUNDS_PER_LEVEL = 3
+
+
+def _generate_levels(count: int) -> list[float]:
+    """Return evenly spaced probability levels between the configured bounds."""
+
+    safe_count = max(int(count), 1)
+    if safe_count == 1:
+        return [round(LEVEL_MIN_PROBABILITY, LEVEL_PRECISION)]
+
+    step = (LEVEL_MAX_PROBABILITY - LEVEL_MIN_PROBABILITY) / (safe_count - 1)
+    return [
+        round(LEVEL_MIN_PROBABILITY + step * index, LEVEL_PRECISION)
+        for index in range(safe_count)
+    ]
+
+
+DEFAULT_LEVELS = _generate_levels(DEFAULT_LEVEL_COUNT)
 
 print("=" * 60)
 print("Surface Code prototype starting")
@@ -119,6 +140,10 @@ def index():
         "index.html",
         grid_sizes=ALLOWED_GRID_SIZES,
         levels=DEFAULT_LEVELS,
+        level_count=DEFAULT_LEVEL_COUNT,
+        allowed_level_counts=ALLOWED_LEVEL_COUNTS,
+        level_bounds=(LEVEL_MIN_PROBABILITY, LEVEL_MAX_PROBABILITY),
+        level_precision=LEVEL_PRECISION,
         rounds_per_level=DEFAULT_ROUNDS_PER_LEVEL,
         allowed_rounds=ALLOWED_ROUNDS_PER_LEVEL,
         database_mode=database_mode,
