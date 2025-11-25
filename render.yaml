@@ -1,5 +1,6 @@
 services:
-  - name: whack-an-error
+  - type: web
+    name: whack-an-error
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
