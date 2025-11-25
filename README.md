@@ -1,28 +1,32 @@
-# Minimal App: Whack‑an‑Error (Stripped Version)
+# Prototype App: Whack‑an‑Error
 
-This repository has been reduced to a minimal Flask + PostgreSQL connectivity check. All former game logic, static assets, and CSV/statistics code have been removed per cleanup request.
+This stripped-down Flask project now exposes the first ingredient for the upcoming game: a preferences screen that seeds demo game data and lets you inspect what is stored in the database.
 
 ## Purpose
 Provide a tiny web service that:
-- Serves a landing page at `/` showing “It works.”
+- Serves a landing screen at `/` where you can select the code distance `d` and trigger demo data generation.
 - Verifies database connectivity via `/api/health`.
-- Offers a simple ping endpoint at `/api/debug/ping`.
+- Generates random placeholder runs through `/api/game/start` and persists them.
+- Lists all stored runs with `/api/game/data` and shows them in a modal from the UI.
+- Offers a simple ping endpoint at `/api/debug/ping` for smoke tests.
 
 ## Current Files
 ```
-app.py          # Flask app (minimal endpoints)
+app.py          # Flask app with prototype UI + API endpoints
 database.py     # SQLAlchemy engine + example model (GameData)
 render.yaml     # Render.com service + PostgreSQL provisioning
 requirements.txt# Minimal dependencies (Flask, gunicorn, psycopg2-binary, SQLAlchemy)
 README.md       # This file
 ```
 
-Legacy assets (HTML, static JS/CSS, templates, migration scripts) were removed in this stripped version.
+Legacy assets (HTML, static JS/CSS, templates, migration scripts) were removed in the previous cleanup pass.
 
 ## Endpoints
-- GET `/` — Returns a minimal HTML page confirming the service runs.
-- GET `/api/health` — Performs a `SELECT 1` against the configured database URL. Returns JSON `{status: "ok"}` or `{status: "error"}`.
+- GET `/` — Renders the game preferences screen with controls and embedded JavaScript.
+- GET `/api/health` — Performs a `SELECT 1` against the configured database URL and reports the result.
 - GET `/api/debug/ping` — Returns JSON `{message: "pong"}`.
+- POST `/api/game/start` — Accepts `{grid_size: 3|4|5|6|7}`, generates random demo statistics, and stores them in the database.
+- GET `/api/game/data` — Returns all stored demo runs ordered by most recent first.
 
 ## Database
 Environment variable `DATABASE_URL` is injected by Render (see `render.yaml`). On startup `database.py` creates tables for the placeholder `GameData` model; you can remove the model or extend it as needed.
