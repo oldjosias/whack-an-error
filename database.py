@@ -3,7 +3,7 @@
 import os
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
+from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -15,7 +15,7 @@ class GameData(Base):
 
     __tablename__ = "game_data"
 
-    uid = Column(String(36), primary_key=True)
+    uid = Column(String(8), primary_key=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     name = Column(String(100))
     grid_size = Column(Integer, nullable=False)
@@ -45,8 +45,9 @@ class DatabaseManager:
             self.engine = create_engine(database_url, echo=False)
             # Create all tables if they don't exist
             Base.metadata.create_all(self.engine)
+            self._ensure_schema()
             print("✅ Database tables initialized")
-            
+
             Session = sessionmaker(bind=self.engine)
             self.session = Session()
         except Exception as e:
@@ -62,3 +63,21 @@ class DatabaseManager:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def _ensure_schema(self) -> None:
+        """Apply lightweight schema adjustments for backward compatibility."""
+
+        inspector = inspect(self.engine)
+        try:
+            columns = {column["name"] for column in inspector.get_columns("game_data")}
+        except Exception:
+            return
+
+        if "probability_stats" not in columns:
+            try:
+                with self.engine.begin() as connection:
+                    connection.execute(
+                        text("ALTER TABLE game_data ADD COLUMN probability_stats TEXT")
+                    )
+            except Exception:
+                pass

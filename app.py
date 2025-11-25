@@ -155,7 +155,7 @@ def api_game_data():
 @app.route("/api/game/save", methods=["POST"])
 def api_game_save():
     payload = request.get_json(silent=True) or {}
-    uid = payload.get("uid") or uuid.uuid4().hex
+    uid = (payload.get("uid") or uuid.uuid4().hex)[:8]
 
     try:
         grid_size = int(payload.get("grid_size"))
