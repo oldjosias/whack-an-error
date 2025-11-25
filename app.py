@@ -25,6 +25,12 @@ CORS(app, resources={
 game_manager = GameManager(initial_d=3)
 data_manager = DataManager()
 
+# Log startup info
+print("=" * 50)
+print("🎮 Whack-an-Error Flask Server Starting...")
+print(f"📊 Database: {'PostgreSQL' if os.environ.get('DATABASE_URL') else 'Local CSV/SQLite'}")
+print("=" * 50)
+
 
 @app.route('/')
 def index():
@@ -137,7 +143,65 @@ def api_statistics_by_age():
 @app.route('/api/health')
 def api_health():
     """Health check endpoint"""
-    return jsonify({'status': 'ok'})
+    db_status = 'postgresql' if os.environ.get('DATABASE_URL') else 'local'
+    
+    # Try to verify database connection
+    try:
+        if data_manager.use_database:
+            from database import DatabaseManager
+            with DatabaseManager() as db:
+                # Quick query to verify connection
+                db.session.execute('SELECT 1')
+                db_connected = True
+        else:
+            db_connected = True  # CSV mode always works
+    except Exception as e:
+        db_connected = False
+        db_status = f"error: {str(e)}"
+    
+    return jsonify({
+        'status': 'ok',
+        'database': db_status,
+        'db_connected': db_connected
+    })
+
+
+@app.route('/api/debug/data_count')
+def api_debug_data_count():
+    """Debug endpoint to check how many records are in the database"""
+    if data_manager.use_database:
+        try:
+            from database import DatabaseManager, GameData
+            with DatabaseManager() as db:
+                count = db.session.query(GameData).count()
+                sample = db.session.query(GameData).limit(3).all()
+                
+                return jsonify({
+                    'storage': 'postgresql',
+                    'total_records': count,
+                    'sample_records': [{
+                        'uid': s.uid,
+                        'name': s.name,
+                        'grid_size': s.grid_size,
+                        'level_reached': s.level_reached
+                    } for s in sample]
+                })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    else:
+        import csv
+        try:
+            with open(data_manager.filename, 'r') as f:
+                count = sum(1 for _ in csv.reader(f)) - 1  # Minus header
+            return jsonify({
+                'storage': 'csv',
+                'total_records': count
+            })
+        except FileNotFoundError:
+            return jsonify({
+                'storage': 'csv',
+                'total_records': 0
+            })
 
 
 if __name__ == '__main__':

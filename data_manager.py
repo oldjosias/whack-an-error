@@ -19,8 +19,19 @@ class DataManager:
         # Keep filename parameter for backward compatibility, but use database
         self.use_database = os.environ.get('DATABASE_URL') is not None
         
+        if self.use_database:
+            print("📊 DataManager: Using PostgreSQL database")
+            # Initialize database tables on first instantiation
+            try:
+                with DatabaseManager() as db:
+                    print("✅ Database connection verified")
+            except Exception as e:
+                print(f"⚠️  Database initialization failed: {e}, falling back to CSV")
+                self.use_database = False
+        
         if not self.use_database:
             # Fallback to CSV for local development without database
+            print("📊 DataManager: Using CSV storage")
             self.filename = filename
             self.headers = [
                 'uid', 'timestamp', 'name', 'age', 'grid_size', 'error_probabilities',
@@ -34,6 +45,7 @@ class DataManager:
         
         if self.use_database:
             try:
+                print(f"💾 Storing game data to database: uid={uid}")
                 with DatabaseManager() as db:
                     game = GameData(
                         uid=uid,
@@ -49,9 +61,11 @@ class DataManager:
                     )
                     db.session.add(game)
                     db.session.commit()
+                    print(f"✅ Game data saved to database: {uid}")
                     
                 return {'uid': uid, 'timestamp': timestamp.isoformat()}
             except Exception as e:
+                print(f"❌ Database save failed: {e}")
                 return {'error': str(e)}
         else:
             # CSV fallback for local development

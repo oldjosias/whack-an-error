@@ -38,15 +38,25 @@ class DatabaseManager:
         if not database_url:
             # Fallback to SQLite for local development
             database_url = 'sqlite:///whack_error.db'
+            print("⚠️  No DATABASE_URL found, using SQLite locally")
+        else:
+            print(f"✅ Using database: {database_url.split('@')[0]}...")
         
         # Fix for Render's postgres:// vs postgresql:// URL
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         
-        self.engine = create_engine(database_url)
-        Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        try:
+            self.engine = create_engine(database_url, echo=False)
+            # Create all tables if they don't exist
+            Base.metadata.create_all(self.engine)
+            print("✅ Database tables initialized")
+            
+            Session = sessionmaker(bind=self.engine)
+            self.session = Session()
+        except Exception as e:
+            print(f"❌ Database connection failed: {e}")
+            raise
     
     def close(self):
         """Close database connection"""
