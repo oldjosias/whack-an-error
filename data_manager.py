@@ -6,6 +6,7 @@ import csv
 import uuid
 import datetime
 import pandas as pd
+import os
 from typing import Dict, List, Optional
 
 
@@ -13,7 +14,9 @@ class DataManager:
     """Manages game data storage and retrieval"""
     
     def __init__(self, filename='data.csv'):
-        self.filename = filename
+        # Use persistent disk if available (Render), otherwise local directory
+        data_dir = os.environ.get('DATA_DIR', '.')
+        self.filename = os.path.join(data_dir, filename)
         self.headers = [
             'uid', 'timestamp', 'name', 'age', 'grid_size', 'error_probabilities',
             'successful_rounds_per_level', 'rounds_per_level', 'level_reached', 'logical_errors'
