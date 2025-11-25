@@ -3,10 +3,23 @@ Flask Application for Whack-an-Error
 Clean, modular backend with separated concerns
 """
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from game_logic import GameManager
 from data_manager import DataManager
+import os
 
 app = Flask(__name__)
+
+# Enable CORS for GitHub Pages frontend
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://oldjosias.github.io",
+            "http://localhost:*",
+            "http://127.0.0.1:*"
+        ]
+    }
+})
 
 # Initialize managers
 game_manager = GameManager(initial_d=3)
@@ -128,4 +141,7 @@ def api_health():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)
+    # Use environment port for Render, fallback to 5002 for local dev
+    port = int(os.environ.get('PORT', 5002))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=port, debug=debug)
