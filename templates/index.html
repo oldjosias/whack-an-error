@@ -778,7 +778,7 @@
       <div class="board-wrapper">
         <div class="board-meta">
           <div><strong>Current level:</strong> <span id="level-label"></span></div>
-          <div><strong>Rounds (overall):</strong> <span id="target-rounds">0/0</span></div>
+          <div><strong>Round:</strong> <span id="target-rounds">0/0</span></div>
         </div>
         <div class="board" id="board" aria-live="polite"></div>
         <p class="status-line" id="status-line" role="status" aria-live="polite"></p>
@@ -938,6 +938,7 @@
       };
 
       let boardScaleFrameId = null;
+      let lastStatsSignature = null;
 
       function setNodeText(node, value) {
         if (!node) {
@@ -1799,16 +1800,27 @@
       }
 
       function renderStats() {
+        const activeSyndromeWeight = (state.running && state.current && Array.isArray(state.current.syndrome))
+          ? sumVector(state.current.syndrome)
+          : 0;
+        const hasActiveInteractiveRound = activeSyndromeWeight > 0;
+        let currentLevelRound = 0;
+        let levelText = '-';
+        let roundText = '-';
+        let logicalText = '-';
+        let noSyndromeText = '-';
+
+        addLog("rendering Stats")
+
         if (state.running && state.levelStats) {
-          setNodeText(statLevel, (state.levelIndex + 1) + ' / ' + state.levels.length);
-          setNodeText(statRound, state.levelStats.withSyndrome + '/' + targetInteractiveRounds);
-          setNodeText(statLogical, state.levelStats.logicalErrors);
-          setNodeText(statNoSyndrome, state.levelStats.withoutSyndrome);
-        } else {
-          setNodeText(statLevel, '-');
-          setNodeText(statRound, '-');
-          setNodeText(statLogical, '-');
-          setNodeText(statNoSyndrome, '-');
+          levelText = (state.levelIndex + 1) + ' / ' + state.levels.length;
+          currentLevelRound = Math.min(
+            state.levelStats.withSyndrome + (hasActiveInteractiveRound ? 1 : 0),
+            targetInteractiveRounds
+          );
+          roundText = currentLevelRound + '/' + targetInteractiveRounds;
+          logicalText = String(state.levelStats.logicalErrors);
+          noSyndromeText = String(state.levelStats.withoutSyndrome);
         }
         const totalInteractiveRounds = state.levels.length * targetInteractiveRounds;
         let completedInteractiveRounds = (state.levelsData || []).reduce((sum, level) => {
@@ -1817,12 +1829,37 @@
         if (state.running && state.levelStats) {
           completedInteractiveRounds += state.levelStats.withSyndrome;
         }
+        const displayedInteractiveRounds = completedInteractiveRounds + (hasActiveInteractiveRound ? 1 : 0);
+        const overallRoundsText = totalInteractiveRounds > 0
+          ? displayedInteractiveRounds + '/' + totalInteractiveRounds
+          : '0/0';
+
+        const statsSignature = [
+          state.running ? 1 : 0,
+          state.levelIndex,
+          state.levels.length,
+          state.levelStats ? state.levelStats.withSyndrome : -1,
+          state.levelStats ? state.levelStats.withoutSyndrome : -1,
+          state.levelStats ? state.levelStats.logicalErrors : -1,
+          currentLevelRound,
+          displayedInteractiveRounds,
+          targetInteractiveRounds,
+          state.levelsData.length,
+          overallRoundsText,
+        ].join('|');
+
+        if (statsSignature === lastStatsSignature) {
+          return;
+        }
+        lastStatsSignature = statsSignature;
+
+        setNodeText(statLevel, levelText);
+        setNodeText(statRound, roundText);
+        setNodeText(statLogical, logicalText);
+        setNodeText(statNoSyndrome, noSyndromeText);
+        addLog("overall rounds: " + overallRoundsText)
         if (targetRoundsLabel) {
-          if (totalInteractiveRounds > 0) {
-            setNodeText(targetRoundsLabel, completedInteractiveRounds + '/' + totalInteractiveRounds);
-          } else {
-            setNodeText(targetRoundsLabel, '0/0');
-          }
+          setNodeText(targetRoundsLabel, overallRoundsText);
         }
         if (selectRounds && selectRounds.value !== String(targetInteractiveRounds)) {
           selectRounds.value = String(targetInteractiveRounds);
@@ -1983,7 +2020,7 @@
         setStatus('Generating rounds...', false);
         setControlsEnabled(false);
         nextRoundBtn.disabled = true;
-        renderStats();
+        // renderStats();
         scheduleNextRound();
       }
 
@@ -2045,7 +2082,6 @@
         });
         addLog('Level ' + (state.levelIndex + 1) + ' completed.');
         state.levelIndex += 1;
-        renderStats();
         setTimeout(advanceLevel, 200);
       }
 
