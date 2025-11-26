@@ -199,6 +199,32 @@
       box-sizing: border-box;
       max-width: 100%;
     }
+    .stats-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin: 0 0 12px;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .stats-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: var(--pixel-radius);
+      border: 1px solid rgba(120, 160, 255, 0.25);
+      background: rgba(6, 10, 34, 0.75);
+      box-shadow: 3px 3px 0 rgba(2, 4, 16, 0.5);
+    }
+    .stats-legend-swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
     .stats-table-wrapper {
       overflow-x: auto;
       margin-bottom: 12px;
@@ -227,7 +253,7 @@
       font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      min-width: 420px;
+      min-width: 480px;
     }
     .stats-table thead {
       background: rgba(12, 20, 48, 0.95);
@@ -241,6 +267,19 @@
     }
     .stats-table tbody tr:nth-child(odd) {
       background: rgba(8, 14, 36, 0.85);
+    }
+    .stats-summary-list {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .stats-summary-list strong {
+      color: #b7caff;
     }
     button:disabled {
       opacity: 0.5;
@@ -362,7 +401,8 @@
       display: grid;
       gap: var(--cell-gap);
       --board-size: 1;
-      grid-template-columns: repeat(var(--board-size), minmax(var(--cell-min-size), 1fr));
+      --board-scale: 1;
+      grid-template-columns: repeat(var(--board-size), minmax(calc(var(--cell-min-size) * var(--board-scale, 1)), 1fr));
       justify-items: stretch;
       background:
         repeating-linear-gradient(0deg, rgba(18, 32, 72, 0.35) 0 2px, transparent 2px 48px),
@@ -383,7 +423,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: var(--cell-min-height);
+      min-height: calc(var(--cell-min-height) * var(--board-scale, 1));
       background: rgba(8, 14, 36, 0.7);
       border: 1px solid rgba(60, 92, 180, 0.35);
       box-shadow: inset 4px 4px 0 rgba(4, 8, 20, 0.6);
@@ -412,7 +452,7 @@
       background: linear-gradient(180deg, rgba(120, 182, 255, 0.95) 0%, rgba(64, 108, 232, 0.95) 100%);
       color: #061238;
       font-weight: 400;
-      font-size: var(--qubit-font-size);
+      font-size: calc(var(--qubit-font-size) * var(--board-scale, 1));
       cursor: pointer;
       transition: transform 120ms steps(5, end), border 120ms steps(5, end), box-shadow 120ms steps(5, end);
       box-shadow: inset 4px 4px 0 rgba(255, 255, 255, 0.18);
@@ -445,15 +485,15 @@
     .stabilizer {
       position: relative;
       z-index: 1;
-      width: var(--stabilizer-size);
-      height: var(--stabilizer-size);
+      width: calc(var(--stabilizer-size) * var(--board-scale, 1));
+      height: calc(var(--stabilizer-size) * var(--board-scale, 1));
       border-radius: var(--pixel-radius);
       background: rgba(68, 102, 220, 0.65);
       border: var(--pixel-border) solid rgba(112, 164, 255, 0.65);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.65rem;
+      font-size: calc(0.65rem * var(--board-scale, 1));
       font-weight: 400;
       color: #020610;
       text-transform: uppercase;
@@ -897,6 +937,71 @@
         autoAdvanceEnabled: true,
       };
 
+      let boardScaleFrameId = null;
+
+      function parseCssNumber(value) {
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
+      function updateBoardScale() {
+        if (!boardEl) {
+          return;
+        }
+        const boardSizeRaw = boardEl.style.getPropertyValue('--board-size');
+        const boardSize = Number.parseInt(boardSizeRaw, 10);
+        if (!Number.isFinite(boardSize) || boardSize <= 0) {
+          boardEl.style.setProperty('--board-scale', '1');
+          return;
+        }
+        boardEl.style.setProperty('--board-scale', '1');
+        const styles = window.getComputedStyle(boardEl);
+        const paddingLeft = parseCssNumber(styles.paddingLeft);
+        const paddingRight = parseCssNumber(styles.paddingRight);
+        const gap = parseCssNumber(styles.getPropertyValue('--cell-gap'));
+        const baseCellMin = parseCssNumber(styles.getPropertyValue('--cell-min-size'));
+        if (!Number.isFinite(baseCellMin) || baseCellMin <= 0) {
+          boardEl.style.setProperty('--board-scale', '1');
+          return;
+        }
+        const contentWidth = boardEl.clientWidth - paddingLeft - paddingRight;
+        if (!Number.isFinite(contentWidth) || contentWidth <= 0) {
+          boardEl.style.setProperty('--board-scale', '1');
+          return;
+        }
+        const totalGap = gap * Math.max(0, boardSize - 1);
+        const available = contentWidth - totalGap;
+        if (!Number.isFinite(available) || available <= 0) {
+          boardEl.style.setProperty('--board-scale', '1');
+          return;
+        }
+        const targetSize = available / boardSize;
+        if (!Number.isFinite(targetSize) || targetSize >= baseCellMin) {
+          boardEl.style.setProperty('--board-scale', '1');
+          return;
+        }
+        const scale = targetSize / baseCellMin;
+        if (!Number.isFinite(scale) || scale >= 1 || scale <= 0) {
+          boardEl.style.setProperty('--board-scale', '1');
+          return;
+        }
+        boardEl.style.setProperty('--board-scale', scale.toFixed(4));
+      }
+
+      function requestBoardScale() {
+        if (typeof window.requestAnimationFrame !== 'function') {
+          updateBoardScale();
+          return;
+        }
+        if (boardScaleFrameId !== null) {
+          window.cancelAnimationFrame(boardScaleFrameId);
+        }
+        boardScaleFrameId = window.requestAnimationFrame(() => {
+          boardScaleFrameId = null;
+          updateBoardScale();
+        });
+      }
+
       function setStatus(message, isError) {
         statusLine.textContent = message || '';
         statusLine.classList.toggle('error', Boolean(isError));
@@ -1070,10 +1175,26 @@
         return result;
       }
 
-      function drawStatsChart(canvas, points) {
-        if (!canvas || !canvas.getContext || !Array.isArray(points) || !points.length) {
+      function drawStatsChart(canvas, seriesList) {
+        if (!canvas || !canvas.getContext || !Array.isArray(seriesList) || !seriesList.length) {
           return;
         }
+        const usableSeries = seriesList
+          .map((series) => ({
+            gridSize: series.gridSize,
+            color: series.color || 'rgba(120, 200, 255, 0.9)',
+            points: Array.isArray(series.points) ? series.points.slice() : [],
+          }))
+          .map((series) => {
+            series.points.sort((a, b) => a.probability - b.probability);
+            return series;
+          })
+          .filter((series) => series.points.length);
+        if (!usableSeries.length) {
+          return;
+        }
+
+        const allPoints = usableSeries.flatMap((series) => series.points);
         const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
         const cssWidth = canvas.clientWidth || canvas.width || 560;
@@ -1096,8 +1217,8 @@
         const chartWidth = width - margin * 2;
         const chartHeight = height - margin * 2;
         const minProb = 0;
-        const maxProb = Math.max(...points.map((p) => p.probability), 0.01);
-        let maxRate = Math.max(...points.map((p) => p.logicalErrorRate + p.stderr), 0.001);
+        const maxProb = Math.max(...allPoints.map((p) => p.probability), 0.01);
+        let maxRate = Math.max(...allPoints.map((p) => p.logicalErrorRate + p.stderr), 0.001);
         if (!Number.isFinite(maxRate) || maxRate <= 0) {
           maxRate = 0.001;
         }
@@ -1138,7 +1259,7 @@
         }
 
         ctx.textBaseline = 'top';
-        const xTickCount = Math.min(points.length, 6);
+        const xTickCount = Math.min(Math.max(allPoints.length, 1), 6);
         for (let i = 0; i <= xTickCount; i += 1) {
           const ratio = xTickCount ? i / xTickCount : 0;
           const probValue = minProb + ratio * probRange;
@@ -1152,42 +1273,46 @@
           ctx.fillText(probValue.toFixed(3), x - 12, margin + chartHeight + 6);
         }
 
-        ctx.strokeStyle = 'rgba(120, 200, 255, 0.9)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        points.forEach((point, index) => {
-          const x = projectX(point.probability);
-          const y = projectY(point.logicalErrorRate);
-          if (index === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        });
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(255, 170, 120, 0.8)';
-        ctx.lineWidth = 1;
-        points.forEach((point) => {
-          const x = projectX(point.probability);
-          const yCenter = projectY(point.logicalErrorRate);
-          const yTop = projectY(point.logicalErrorRate + point.stderr);
-          const yBottom = projectY(Math.max(point.logicalErrorRate - point.stderr, 0));
+        usableSeries.forEach((series) => {
+          ctx.save();
+          ctx.strokeStyle = series.color;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(x, yTop);
-          ctx.lineTo(x, yBottom);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(x - 4, yTop);
-          ctx.lineTo(x + 4, yTop);
-          ctx.moveTo(x - 4, yBottom);
-          ctx.lineTo(x + 4, yBottom);
+          series.points.forEach((point, index) => {
+            const x = projectX(point.probability);
+            const y = projectY(point.logicalErrorRate);
+            if (index === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
           ctx.stroke();
 
-          ctx.fillStyle = 'rgba(120, 220, 255, 0.95)';
-          ctx.beginPath();
-          ctx.arc(x, yCenter, 3, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.lineWidth = 1;
+          series.points.forEach((point) => {
+            const x = projectX(point.probability);
+            const yCenter = projectY(point.logicalErrorRate);
+            const yTop = projectY(point.logicalErrorRate + point.stderr);
+            const yBottom = projectY(Math.max(point.logicalErrorRate - point.stderr, 0));
+            ctx.strokeStyle = series.color;
+            ctx.beginPath();
+            ctx.moveTo(x, yTop);
+            ctx.lineTo(x, yBottom);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - 4, yTop);
+            ctx.lineTo(x + 4, yTop);
+            ctx.moveTo(x - 4, yBottom);
+            ctx.lineTo(x + 4, yBottom);
+            ctx.stroke();
+
+            ctx.fillStyle = series.color;
+            ctx.beginPath();
+            ctx.arc(x, yCenter, 3, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.restore();
         });
         ctx.restore();
 
@@ -1225,62 +1350,114 @@
           statsOverlayOutput.appendChild(emptyMessage);
           return;
         }
+        const palette = ['#7dd3fc', '#fca5a5', '#fcd34d', '#c4b5fd', '#86efac', '#f9a8d4', '#f97316', '#fbbf24'];
+        const seriesList = sections
+          .map((section, index) => ({
+            gridSize: section.gridSize,
+            points: Array.isArray(section.points) ? section.points : [],
+            totals: section.totals || { totalRounds: 0, logicalFailures: 0 },
+            color: palette[index % palette.length],
+          }))
+          .filter((section) => section.points.length);
 
-        sections.forEach((section) => {
-          const container = document.createElement('section');
-          container.className = 'stats-section';
+        if (!seriesList.length) {
+          const emptyMessage = document.createElement('p');
+          emptyMessage.textContent = 'Not enough data yet. Play a few sessions to generate statistics.';
+          statsOverlayOutput.appendChild(emptyMessage);
+          return;
+        }
 
-          const header = document.createElement('h3');
-          const totalRounds = section.totals?.totalRounds || 0;
-          const logicalFailures = section.totals?.logicalFailures || 0;
-          header.textContent = 'Code distance d = ' + section.gridSize + ' (' + totalRounds.toLocaleString() + ' rounds)';
-          container.appendChild(header);
+        const container = document.createElement('section');
+        container.className = 'stats-section';
 
-          const canvas = document.createElement('canvas');
-          canvas.width = 560;
-          canvas.height = 280;
-          canvas.className = 'stats-chart';
-          container.appendChild(canvas);
-          drawStatsChart(canvas, section.points);
+        const header = document.createElement('h3');
+        const totalRoundsAll = seriesList.reduce((total, series) => total + (series.totals.totalRounds || 0), 0);
+        header.textContent = 'Logical error rates by code distance (' + totalRoundsAll.toLocaleString() + ' rounds)';
+        container.appendChild(header);
 
-          const table = document.createElement('table');
-          table.className = 'stats-table';
-          const thead = document.createElement('thead');
-          thead.innerHTML = '<tr><th>Probability</th><th>Total rounds</th><th>Logical failures</th><th>Logical error rate</th><th>Std. error</th><th>Best score</th></tr>';
-          table.appendChild(thead);
-          const tbody = document.createElement('tbody');
-          section.points.forEach((point) => {
-            const row = document.createElement('tr');
-            const stderrValue = Number.isFinite(point.stderr) ? point.stderr : 0;
-            const bestSummary = point.bestName && Number.isFinite(point.bestRate)
-              ? point.bestName + ' (' + formatRate(point.bestRate) + ')'
-              : '—';
-            row.innerHTML = [
-              point.probability.toFixed(3),
-              point.totalRounds.toLocaleString(),
-              point.logicalFailures.toLocaleString(),
-              formatRate(point.logicalErrorRate),
-              formatRate(stderrValue),
-              bestSummary,
-            ]
-              .map((value) => '<td>' + value + '</td>')
-              .join('');
-            tbody.appendChild(row);
-          });
-          table.appendChild(tbody);
-          const tableWrapper = document.createElement('div');
-          tableWrapper.className = 'stats-table-wrapper';
-          tableWrapper.appendChild(table);
-          container.appendChild(tableWrapper);
+        const canvas = document.createElement('canvas');
+        canvas.width = 560;
+        canvas.height = 280;
+        canvas.className = 'stats-chart';
+        container.appendChild(canvas);
+        drawStatsChart(canvas, seriesList);
 
-          const footer = document.createElement('p');
-          footer.style.margin = '10px 0 0';
-          const lerOverall = section.totals.totalRounds > 0 ? section.totals.logicalFailures / section.totals.totalRounds : 0;
-          footer.textContent = 'Aggregate logical error rate: ' + formatRate(lerOverall) + ' (' + section.totals.logicalFailures.toLocaleString() + ' / ' + section.totals.totalRounds.toLocaleString() + ')';
-          container.appendChild(footer);
-
-          statsOverlayOutput.appendChild(container);
+        const legend = document.createElement('div');
+        legend.className = 'stats-legend';
+        seriesList.forEach((series) => {
+          const item = document.createElement('span');
+          item.className = 'stats-legend-item';
+          const swatch = document.createElement('span');
+          swatch.className = 'stats-legend-swatch';
+          swatch.style.backgroundColor = series.color;
+          swatch.style.borderColor = series.color;
+          item.appendChild(swatch);
+          const label = document.createElement('span');
+          label.textContent = 'd = ' + series.gridSize;
+          item.appendChild(label);
+          legend.appendChild(item);
         });
+        container.appendChild(legend);
+
+        const table = document.createElement('table');
+        table.className = 'stats-table';
+        const thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th>Distance</th><th>Probability</th><th>Total rounds</th><th>Logical failures</th><th>Logical error rate</th><th>Std. error</th><th>Best score</th></tr>';
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+
+        const tableRows = [];
+        seriesList.forEach((series) => {
+          series.points.forEach((point) => {
+            tableRows.push({ series, point });
+          });
+        });
+        tableRows.sort((a, b) => {
+          if (a.series.gridSize !== b.series.gridSize) {
+            return a.series.gridSize - b.series.gridSize;
+          }
+          return a.point.probability - b.point.probability;
+        });
+
+        tableRows.forEach(({ series, point }) => {
+          const row = document.createElement('tr');
+          const stderrValue = Number.isFinite(point.stderr) ? point.stderr : 0;
+          const bestSummary = point.bestName && Number.isFinite(point.bestRate)
+            ? point.bestName + ' (' + formatRate(point.bestRate) + ')'
+            : '—';
+          row.innerHTML = [
+            'd = ' + series.gridSize,
+            point.probability.toFixed(3),
+            point.totalRounds.toLocaleString(),
+            point.logicalFailures.toLocaleString(),
+            formatRate(point.logicalErrorRate),
+            formatRate(stderrValue),
+            bestSummary,
+          ]
+            .map((value) => '<td>' + value + '</td>')
+            .join('');
+          tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        const tableWrapper = document.createElement('div');
+        tableWrapper.className = 'stats-table-wrapper';
+        tableWrapper.appendChild(table);
+        container.appendChild(tableWrapper);
+
+        const summaryList = document.createElement('ul');
+        summaryList.className = 'stats-summary-list';
+        seriesList.forEach((series) => {
+          const item = document.createElement('li');
+          const lerOverall = series.totals.totalRounds > 0
+            ? series.totals.logicalFailures / series.totals.totalRounds
+            : 0;
+          item.innerHTML = '<strong>d = ' + series.gridSize + '</strong> · ' + formatRate(lerOverall) + ' (' + series.totals.logicalFailures.toLocaleString() + ' / ' + series.totals.totalRounds.toLocaleString() + ')';
+          summaryList.appendChild(item);
+        });
+        container.appendChild(summaryList);
+
+        statsOverlayOutput.appendChild(container);
       }
 
       function showStatsOverlay() {
@@ -1382,12 +1559,15 @@
       function clearBoard() {
         boardEl.textContent = '';
         boardEl.style.setProperty('--board-size', 1);
+        boardEl.style.setProperty('--board-scale', '1');
         const placeholder = document.createElement('div');
         placeholder.className = 'cell placeholder';
         placeholder.textContent = 'Select a distance and press Start Game.';
         boardEl.appendChild(placeholder);
         state.qubitButtons = [];
         state.stabilizerWidgets = [];
+        updateBoardScale();
+        requestBoardScale();
       }
 
       class SurfaceCode {
@@ -1464,6 +1644,7 @@
         boardEl.textContent = '';
         const size = surface.d * 2 - 1;
         boardEl.style.setProperty('--board-size', size);
+        boardEl.style.setProperty('--board-scale', '1');
         const cells = Array.from({ length: size * size }, () => {
           const wrapper = document.createElement('div');
           wrapper.className = 'cell empty';
@@ -1506,6 +1687,8 @@
         });
 
         updateBoardLabels();
+        updateBoardScale();
+        requestBoardScale();
       }
 
       function updateBoardMarkers() {
@@ -1989,6 +2172,7 @@
       overlayClose.addEventListener('click', hideOverlay);
       statsOverlay.addEventListener('click', hideStatsOverlay);
       statsOverlayClose.addEventListener('click', hideStatsOverlay);
+      window.addEventListener('resize', requestBoardScale);
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
