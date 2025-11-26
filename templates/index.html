@@ -125,6 +125,11 @@
       color: inherit;
       flex: 1 1 140px;
     }
+    button.ghost.is-off {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(205, 215, 255, 0.18);
+      opacity: 0.9;
+    }
     button:disabled {
       opacity: 0.6;
       cursor: wait;
@@ -134,6 +139,32 @@
     button:not(:disabled):hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 24px -16px rgba(150, 200, 255, 0.8);
+    }
+    .button-progress {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .button-progress::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.18);
+      transform-origin: left center;
+      transform: scaleX(var(--progress, 0));
+      transition: transform 0.1s linear;
+      z-index: -1;
+    }
+    .button-progress.active::before {
+      animation: buttonFill var(--auto-duration, 1000ms) linear forwards;
+    }
+    @keyframes buttonFill {
+      from {
+        transform: scaleX(0);
+      }
+      to {
+        transform: scaleX(1);
+      }
     }
     .meta-label {
       margin-top: 12px;
@@ -493,7 +524,8 @@
         <div class="board" id="board" aria-live="polite"></div>
         <p class="status-line" id="status-line" role="status" aria-live="polite"></p>
         <div class="actions" style="margin-top: 18px;">
-          <button type="button" class="primary" id="next-round" disabled>Continue</button>
+          <button type="button" class="ghost" id="auto-advance-toggle">Auto-advance On</button>
+          <button type="button" class="primary button-progress" id="next-round" disabled>Continue</button>
         </div>
       </div>
 
@@ -585,6 +617,7 @@
       const resetBtn = document.getElementById('reset-game');
       const showDataBtn = document.getElementById('show-data');
       const nextRoundBtn = document.getElementById('next-round');
+      const autoAdvanceToggle = document.getElementById('auto-advance-toggle');
       const expertToggle = document.getElementById('expert-toggle');
       const selectD = document.getElementById('config-d');
       const selectRounds = document.getElementById('config-rounds');
@@ -606,6 +639,7 @@
       const statLogical = document.getElementById('stat-logical');
       const statNoSyndrome = document.getElementById('stat-nosyndrome');
       const expertControls = document.querySelectorAll('[data-expert-control]');
+      const AUTO_ADVANCE_DELAY_MS = 1000;
 
       if (selectRounds) {
         selectRounds.value = String(targetInteractiveRounds);
@@ -628,6 +662,8 @@
         levelStats: null,
         levelsData: [],
         current: null,
+        autoTimer: null,
+        autoAdvanceEnabled: true,
       };
 
       function setStatus(message, isError) {
@@ -644,12 +680,82 @@
         }
       }
 
+      function clearAutoTimer() {
+        if (state.autoTimer !== null) {
+          window.clearTimeout(state.autoTimer);
+          state.autoTimer = null;
+        }
+        if (nextRoundBtn) {
+          nextRoundBtn.classList.remove('active');
+          nextRoundBtn.style.removeProperty('--progress');
+          nextRoundBtn.style.removeProperty('--auto-duration');
+        }
+      }
+
+      function maybeScheduleAutoContinue() {
+        clearAutoTimer();
+        if (
+          !state.running ||
+          !state.autoAdvanceEnabled ||
+          !state.current ||
+          !nextRoundBtn ||
+          nextRoundBtn.disabled
+        ) {
+          return;
+        }
+        const duration = AUTO_ADVANCE_DELAY_MS;
+        nextRoundBtn.style.setProperty('--auto-duration', duration + 'ms');
+        nextRoundBtn.classList.add('active');
+        state.autoTimer = window.setTimeout(() => {
+          state.autoTimer = null;
+          if (nextRoundBtn) {
+            nextRoundBtn.classList.remove('active');
+            nextRoundBtn.style.removeProperty('--progress');
+          }
+          if (
+            state.running &&
+            state.autoAdvanceEnabled &&
+            state.current &&
+            nextRoundBtn &&
+            !nextRoundBtn.disabled
+          ) {
+            handleContinue();
+          }
+        }, AUTO_ADVANCE_DELAY_MS);
+      }
+
+      function updateAutoAdvanceToggle() {
+        if (!autoAdvanceToggle) {
+          return;
+        }
+        const label = state.autoAdvanceEnabled ? 'Auto-advance On' : 'Auto-advance Off';
+        autoAdvanceToggle.textContent = label;
+        autoAdvanceToggle.classList.toggle('is-off', !state.autoAdvanceEnabled);
+        autoAdvanceToggle.setAttribute('aria-pressed', state.autoAdvanceEnabled ? 'true' : 'false');
+      }
+
+      function setAutoAdvanceEnabled(enabled) {
+        const normalized = Boolean(enabled);
+        state.autoAdvanceEnabled = normalized;
+        updateAutoAdvanceToggle();
+        if (!normalized) {
+          clearAutoTimer();
+        } else if (state.running && state.current) {
+          maybeScheduleAutoContinue();
+        }
+      }
+
       function setExpertControlsDisabled(disabled) {
         expertControls.forEach((element) => {
           if (!element) {
             return;
           }
           element.disabled = disabled;
+          if (disabled) {
+            element.classList.remove('active');
+            element.style.removeProperty('--progress');
+            element.style.removeProperty('--auto-duration');
+          }
         });
       }
 
@@ -892,6 +998,7 @@
           if (levelStats.withSyndrome >= targetInteractiveRounds) {
             addLog('Target number of interactive rounds reached for this level.');
           }
+          maybeScheduleAutoContinue();
         } else {
           setStatus('Syndrome weight ' + weight + '. Continue correcting.');
         }
@@ -971,6 +1078,7 @@
       }
 
       function resetState() {
+        clearAutoTimer();
         state.running = false;
         state.surface = null;
         state.qubitButtons = [];
@@ -995,6 +1103,7 @@
         } else {
           renderStats();
         }
+        updateAutoAdvanceToggle();
       }
 
       function startGame() {
@@ -1047,6 +1156,7 @@
       }
 
       function advanceLevel() {
+        clearAutoTimer();
         if (!state.running) {
           return;
         }
@@ -1074,6 +1184,7 @@
       }
 
       function scheduleNextRound() {
+        clearAutoTimer();
         if (!state.running) {
           return;
         }
@@ -1118,6 +1229,7 @@
       }
 
       function finishLevel() {
+        clearAutoTimer();
         const totalRounds = state.levelStats.withSyndrome + state.levelStats.withoutSyndrome;
         state.levelsData.push({
           probability: state.levelStats.probability,
@@ -1134,9 +1246,12 @@
       }
 
       function finishRun() {
+        clearAutoTimer();
         state.running = false;
         setControlsEnabled(false);
         nextRoundBtn.disabled = true;
+        nextRoundBtn.classList.remove('active');
+        nextRoundBtn.style.removeProperty('--progress');
         startBtn.disabled = false;
         if (selectRounds) {
           selectRounds.disabled = false;
@@ -1206,6 +1321,7 @@
         if (!state.current) {
           return;
         }
+        clearAutoTimer();
         state.current = null;
         nextRoundBtn.disabled = true;
         setStatus('Preparing next round...', false);
@@ -1254,6 +1370,13 @@
           applyExpertMode(Boolean(expertToggle.checked));
         });
       }
+      if (autoAdvanceToggle) {
+        autoAdvanceToggle.addEventListener('click', () => {
+          const nextEnabled = !state.autoAdvanceEnabled;
+          setAutoAdvanceEnabled(nextEnabled);
+          addLog(nextEnabled ? 'Auto-advance enabled.' : 'Auto-advance disabled.');
+        });
+      }
 
       startBtn.addEventListener('click', startGame);
       resetBtn.addEventListener('click', resetState);
@@ -1270,6 +1393,7 @@
 
       clearBoard();
       applyExpertMode(Boolean(expertToggle && expertToggle.checked));
+      setAutoAdvanceEnabled(state.autoAdvanceEnabled);
     })();
   </script>
 </body>
