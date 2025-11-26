@@ -10,6 +10,11 @@
       font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
       background: #040712;
       color: #f0f4ff;
+      --cell-min-size: 46px;
+      --cell-min-height: 46px;
+      --cell-gap: 8px;
+      --stabilizer-size: 36px;
+      --qubit-font-size: 0.95rem;
     }
     body {
       margin: 0;
@@ -52,6 +57,29 @@
       margin-bottom: 8px;
       font-weight: 600;
     }
+    .form-field {
+      margin-bottom: 18px;
+    }
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .toggle input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #38bdf8;
+    }
+    .toggle span {
+      font-size: 1rem;
+    }
+    .toggle-hint {
+      margin: 6px 0 0;
+      opacity: 0.65;
+      font-size: 0.9rem;
+    }
     select,
     input[type="text"] {
       width: 100%;
@@ -61,6 +89,10 @@
       background: rgba(14, 18, 44, 0.9);
       color: inherit;
       font-size: 1rem;
+      box-sizing: border-box;
+    }
+    body:not(.expert-mode) .expert-only {
+      display: none !important;
     }
     .actions {
       display: flex;
@@ -154,6 +186,7 @@
       padding: 26px;
       border: 1px solid rgba(135, 156, 255, 0.24);
       backdrop-filter: blur(10px);
+      scroll-margin-top: 18px;
     }
     .board-meta {
       display: flex;
@@ -165,9 +198,9 @@
     }
     .board {
       display: grid;
-      gap: 8px;
+      gap: var(--cell-gap);
       --board-size: 1;
-      grid-template-columns: repeat(var(--board-size), minmax(46px, 1fr));
+      grid-template-columns: repeat(var(--board-size), minmax(var(--cell-min-size), 1fr));
       justify-items: stretch;
     }
     .cell {
@@ -175,7 +208,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 46px;
+      min-height: var(--cell-min-height);
     }
     .cell.placeholder {
       color: rgba(220, 224, 255, 0.5);
@@ -205,7 +238,7 @@
       background: linear-gradient(135deg, rgba(83, 109, 254, 0.9), rgba(48, 79, 216, 0.9));
       color: #f6f7ff;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: var(--qubit-font-size);
       cursor: pointer;
       transition: transform 120ms ease, border 120ms ease, box-shadow 120ms ease;
     }
@@ -233,8 +266,8 @@
     .stabilizer {
       position: relative;
       z-index: 1;
-      width: 36px;
-      height: 36px;
+      width: var(--stabilizer-size);
+      height: var(--stabilizer-size);
       border-radius: 999px;
       background: rgba(93, 116, 255, 0.42);
       border: 2px solid rgba(94, 112, 255, 0.35);
@@ -252,6 +285,54 @@
       color: #2f0712;
       transform: scale(1.05);
       box-shadow: 0 0 0 8px rgba(255, 130, 180, 0.1);
+    }
+    @media (max-width: 720px) {
+      :root {
+        --cell-min-size: 36px;
+        --cell-min-height: 36px;
+        --cell-gap: 8px;
+        --stabilizer-size: 30px;
+        --qubit-font-size: 0.82rem;
+      }
+      .board-wrapper {
+        padding: 20px;
+      }
+      .log {
+        max-height: 200px;
+      }
+    }
+    @media (max-width: 540px) {
+      :root {
+        --cell-min-size: 28px;
+        --cell-min-height: 28px;
+        --cell-gap: 4px;
+        --stabilizer-size: 24px;
+        --qubit-font-size: 0.72rem;
+      }
+      .board-wrapper {
+        padding: 16px;
+      }
+      .actions {
+        gap: 10px;
+      }
+      .log {
+        max-height: 180px;
+      }
+    }
+    @media (max-width: 420px) {
+      :root {
+        --cell-min-size: 20px;
+        --cell-min-height: 20px;
+        --cell-gap: 2px;
+        --stabilizer-size: 18px;
+        --qubit-font-size: 0.62rem;
+      }
+      body {
+        padding: 14px;
+      }
+      .board-wrapper {
+        padding: 14px;
+      }
     }
     .status-line {
       margin: 6px 0 0;
@@ -342,35 +423,51 @@
       <h1>Whack-an-Error</h1>
       <p class="subtitle">Explore the surface-code correction loop. Flip qubits to clear the syndrome without inducing a logical error.</p>
 
-      <label for="player-name">Your name</label>
-      <input id="player-name" type="text" placeholder="Optional" maxlength="100" />
+      <div class="form-field">
+        <label class="toggle" for="expert-toggle">
+          <input type="checkbox" id="expert-toggle" />
+          <span>Expert mode</span>
+        </label>
+        <p class="toggle-hint">Reveal advanced controls and diagnostics.</p>
+      </div>
 
-      <label for="config-d">Code distance (d)</label>
-      <select id="config-d" aria-label="Select code distance">
-        {% for value in grid_sizes %}
-        <option value="{{ value }}">d = {{ value }}</option>
-        {% endfor %}
-      </select>
+      <div class="form-field expert-only">
+        <label for="player-name">Your name</label>
+        <input id="player-name" type="text" placeholder="Optional" maxlength="100" data-expert-control="true" />
+      </div>
 
-      <label for="config-levels">Levels per run</label>
-      <select id="config-levels" aria-label="Select number of levels">
-        {% for value in allowed_level_counts %}
-        <option value="{{ value }}" {% if value == level_count %}selected{% endif %}>{{ value }} levels</option>
-        {% endfor %}
-      </select>
+      <div class="form-field">
+        <label for="config-d">Code distance (d)</label>
+        <select id="config-d" aria-label="Select code distance">
+          {% for value in grid_sizes %}
+          <option value="{{ value }}">d = {{ value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field expert-only">
+        <label for="config-levels">Levels per run</label>
+        <select id="config-levels" aria-label="Select number of levels" data-expert-control="true">
+          {% for value in allowed_level_counts %}
+          <option value="{{ value }}" {% if value == level_count %}selected{% endif %}>{{ value }} levels</option>
+          {% endfor %}
+        </select>
+      </div>
 
       <div class="actions">
         <button type="button" class="primary" id="start-game">Start Game</button>
-        <button type="button" class="secondary" id="show-data">Show Data</button>
+        <button type="button" class="secondary expert-only" id="show-data">Show Data</button>
         <button type="button" class="ghost" id="reset-game">Reset</button>
       </div>
 
-      <label for="config-rounds">Interactive rounds per level</label>
-      <select id="config-rounds" aria-label="Select rounds per level">
-        {% for value in allowed_rounds %}
-        <option value="{{ value }}" {% if value == rounds_per_level %}selected{% endif %}>{{ value }} rounds</option>
-        {% endfor %}
-      </select>
+      <div class="form-field expert-only">
+        <label for="config-rounds">Interactive rounds per level</label>
+        <select id="config-rounds" aria-label="Select rounds per level" data-expert-control="true">
+          {% for value in allowed_rounds %}
+          <option value="{{ value }}" {% if value == rounds_per_level %}selected{% endif %}>{{ value }} rounds</option>
+          {% endfor %}
+        </select>
+      </div>
 
       <p class="meta-label">Database: {{ database_mode }}</p>
 
@@ -381,7 +478,7 @@
         <div><strong>No syndrome rounds:</strong> <span id="stat-nosyndrome">-</span></div>
       </div>
 
-      <div class="log">
+      <div class="log expert-only">
         <h2>Event log</h2>
         <ul id="log-list"></ul>
       </div>
@@ -469,6 +566,8 @@
         selectedLevelCount = 1;
       }
 
+      const baseLevelCount = selectedLevelCount;
+
       let initialLevels = defaultLevels.slice();
       if (initialLevels.length !== selectedLevelCount) {
         initialLevels = generateLevels(selectedLevelCount);
@@ -480,14 +579,18 @@
         targetInteractiveRounds = allowedRoundOptions.length ? allowedRoundOptions[0] : 3;
       }
 
+      const baseRoundsPerLevel = targetInteractiveRounds;
+
       const startBtn = document.getElementById('start-game');
       const resetBtn = document.getElementById('reset-game');
       const showDataBtn = document.getElementById('show-data');
       const nextRoundBtn = document.getElementById('next-round');
+      const expertToggle = document.getElementById('expert-toggle');
       const selectD = document.getElementById('config-d');
       const selectRounds = document.getElementById('config-rounds');
       const selectLevels = document.getElementById('config-levels');
       const playerNameInput = document.getElementById('player-name');
+      const boardWrapper = document.querySelector('.board-wrapper');
       const boardEl = document.getElementById('board');
       const statusLine = document.getElementById('status-line');
       const levelLabel = document.getElementById('level-label');
@@ -502,6 +605,7 @@
       const statRound = document.getElementById('stat-round');
       const statLogical = document.getElementById('stat-logical');
       const statNoSyndrome = document.getElementById('stat-nosyndrome');
+      const expertControls = document.querySelectorAll('[data-expert-control]');
 
       if (selectRounds) {
         selectRounds.value = String(targetInteractiveRounds);
@@ -517,6 +621,7 @@
         stabilizerWidgets: [],
         sessionId: null,
         playerName: null,
+        expertMode: Boolean(expertToggle && expertToggle.checked),
         levelIndex: 0,
         levels: initialLevels.slice(),
         levelCount: selectedLevelCount,
@@ -536,6 +641,61 @@
         logList.prepend(entry);
         while (logList.children.length > 40) {
           logList.removeChild(logList.lastChild);
+        }
+      }
+
+      function setExpertControlsDisabled(disabled) {
+        expertControls.forEach((element) => {
+          if (!element) {
+            return;
+          }
+          element.disabled = disabled;
+        });
+      }
+
+      function applyExpertMode(isExpert) {
+        state.expertMode = isExpert;
+        document.body.classList.toggle('expert-mode', isExpert);
+        setExpertControlsDisabled(!isExpert);
+        if (!isExpert) {
+          if (playerNameInput) {
+            playerNameInput.value = '';
+          }
+          if (!state.running) {
+            selectedLevelCount = baseLevelCount;
+            state.levelCount = baseLevelCount;
+            state.levels = generateLevels(baseLevelCount);
+            if (selectLevels) {
+              selectLevels.value = String(baseLevelCount);
+            }
+            targetInteractiveRounds = baseRoundsPerLevel;
+            if (selectRounds) {
+              selectRounds.value = String(targetInteractiveRounds);
+            }
+          }
+        } else if (selectLevels) {
+          selectLevels.value = String(selectedLevelCount);
+        }
+        renderStats();
+      }
+
+      function ensureBoardVisibility() {
+        if (!boardWrapper) {
+          return;
+        }
+        const compactLayout = window.matchMedia('(max-width: 960px)').matches;
+        if (!compactLayout) {
+          return;
+        }
+        const scrollToBoard = () => {
+          boardWrapper.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        };
+        if (window.requestAnimationFrame) {
+          window.requestAnimationFrame(() => {
+            window.setTimeout(scrollToBoard, 60);
+          });
+        } else {
+          window.setTimeout(scrollToBoard, 60);
         }
       }
 
@@ -753,10 +913,17 @@
         if (selectRounds && selectRounds.value !== String(targetInteractiveRounds)) {
           selectRounds.value = String(targetInteractiveRounds);
         }
+        if (selectLevels && selectLevels.value !== String(selectedLevelCount)) {
+          selectLevels.value = String(selectedLevelCount);
+        }
       }
 
       function handleRoundsChange() {
         if (!selectRounds) {
+          return;
+        }
+        if (!state.expertMode) {
+          selectRounds.value = String(targetInteractiveRounds);
           return;
         }
         const chosen = Number.parseInt(selectRounds.value, 10);
@@ -773,6 +940,10 @@
 
       function handleLevelsChange() {
         if (!selectLevels) {
+          return;
+        }
+        if (!state.expertMode) {
+          selectLevels.value = String(selectedLevelCount);
           return;
         }
         const chosen = Number.parseInt(selectLevels.value, 10);
@@ -817,16 +988,13 @@
         summaryOutput.textContent = 'No data yet.';
         levelLabel.textContent = '-';
         setStatus('', false);
-        renderStats();
         clearBoard();
-        if (selectRounds) {
-          selectRounds.disabled = false;
-        }
-        if (selectLevels) {
-          selectLevels.disabled = false;
-          selectLevels.value = String(selectedLevelCount);
-        }
         startBtn.disabled = false;
+        if (expertToggle) {
+          applyExpertMode(Boolean(expertToggle.checked));
+        } else {
+          renderStats();
+        }
       }
 
       function startGame() {
@@ -835,13 +1003,18 @@
           setStatus('Unknown code distance selected.', true);
           return;
         }
-        if (selectRounds) {
+        const isExpert = Boolean(expertToggle && expertToggle.checked);
+        let playerName = '';
+        if (isExpert && playerNameInput) {
+          playerName = playerNameInput.value.trim();
+        }
+        if (isExpert && selectRounds) {
           const selectedRounds = Number.parseInt(selectRounds.value, 10);
           if (Number.isFinite(selectedRounds) && allowedRoundOptions.includes(selectedRounds)) {
             targetInteractiveRounds = selectedRounds;
           }
         }
-        if (selectLevels) {
+        if (isExpert && selectLevels) {
           const selectedLevels = Number.parseInt(selectLevels.value, 10);
           if (Number.isFinite(selectedLevels)) {
             const normalized = Math.max(1, Math.floor(selectedLevels));
@@ -850,23 +1023,26 @@
             }
           }
         }
-        const playerName = playerNameInput ? playerNameInput.value.trim() : '';
         resetState();
-        state.playerName = playerName ? playerName : null;
+        state.playerName = state.expertMode && playerName ? playerName : null;
         state.running = true;
         state.surface = new SurfaceCode(distance);
         state.sessionId = uuid();
         startBtn.disabled = true;
-        if (selectRounds) {
+        if (state.expertMode && selectRounds) {
           selectRounds.disabled = true;
         }
-        if (selectLevels) {
+        if (state.expertMode && selectLevels) {
           selectLevels.disabled = true;
+        }
+        if (selectLevels) {
+          selectLevels.value = String(selectedLevelCount);
         }
         const sessionLog = 'New session ' + state.sessionId + ' started with d=' + distance + (state.playerName ? ' for ' + state.playerName : '') + '.';
         addLog(sessionLog);
         buildBoard(state.surface);
         renderStats();
+        ensureBoardVisibility();
         advanceLevel();
       }
 
@@ -1073,6 +1249,11 @@
       if (selectLevels) {
         selectLevels.addEventListener('change', handleLevelsChange);
       }
+      if (expertToggle) {
+        expertToggle.addEventListener('change', () => {
+          applyExpertMode(Boolean(expertToggle.checked));
+        });
+      }
 
       startBtn.addEventListener('click', startGame);
       resetBtn.addEventListener('click', resetState);
@@ -1088,6 +1269,7 @@
       });
 
       clearBoard();
+      applyExpertMode(Boolean(expertToggle && expertToggle.checked));
     })();
   </script>
 </body>
