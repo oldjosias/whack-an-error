@@ -939,6 +939,16 @@
 
       let boardScaleFrameId = null;
 
+      function setNodeText(node, value) {
+        if (!node) {
+          return;
+        }
+        const nextValue = value == null ? '' : String(value);
+        if (node.textContent !== nextValue) {
+          node.textContent = nextValue;
+        }
+      }
+
       function parseCssNumber(value) {
         const parsed = Number.parseFloat(value);
         return Number.isFinite(parsed) ? parsed : 0;
@@ -1003,7 +1013,7 @@
       }
 
       function setStatus(message, isError) {
-        statusLine.textContent = message || '';
+        setNodeText(statusLine, message);
         statusLine.classList.toggle('error', Boolean(isError));
       }
 
@@ -1065,7 +1075,7 @@
           return;
         }
         const label = state.autoAdvanceEnabled ? 'Auto-advance On' : 'Auto-advance Off';
-        autoAdvanceToggle.textContent = label;
+        setNodeText(autoAdvanceToggle, label);
         autoAdvanceToggle.classList.toggle('is-off', !state.autoAdvanceEnabled);
         autoAdvanceToggle.setAttribute('aria-pressed', state.autoAdvanceEnabled ? 'true' : 'false');
       }
@@ -1367,6 +1377,7 @@
           return;
         }
 
+        const fragment = document.createDocumentFragment();
         const container = document.createElement('section');
         container.className = 'stats-section';
 
@@ -1457,7 +1468,8 @@
         });
         container.appendChild(summaryList);
 
-        statsOverlayOutput.appendChild(container);
+        fragment.appendChild(container);
+        statsOverlayOutput.appendChild(fragment);
       }
 
       function showStatsOverlay() {
@@ -1645,12 +1657,14 @@
         const size = surface.d * 2 - 1;
         boardEl.style.setProperty('--board-size', size);
         boardEl.style.setProperty('--board-scale', '1');
+        const fragment = document.createDocumentFragment();
         const cells = Array.from({ length: size * size }, () => {
           const wrapper = document.createElement('div');
           wrapper.className = 'cell empty';
-          boardEl.appendChild(wrapper);
+          fragment.appendChild(wrapper);
           return wrapper;
         });
+        boardEl.appendChild(fragment);
 
         const indexFor = (row, col) => row * size + col;
 
@@ -1665,7 +1679,6 @@
           button.dataset.label = label;
           button.textContent = state.expertMode ? label : '';
           button.disabled = true;
-          button.addEventListener('click', () => handleQubitFlip(q.idx));
           const cell = cells[indexFor(r, c)];
           cell.classList.remove('empty');
           cell.appendChild(button);
@@ -1740,6 +1753,18 @@
         return vector.reduce((total, value) => total + value, 0);
       }
 
+      function handleBoardClick(event) {
+        const target = event.target instanceof Element ? event.target.closest('.qubit') : null;
+        if (!target || target.disabled) {
+          return;
+        }
+        const idx = Number.parseInt(target.dataset.idx || '', 10);
+        if (!Number.isFinite(idx)) {
+          return;
+        }
+        handleQubitFlip(idx);
+      }
+
       function handleQubitFlip(idx) {
         if (!state.running || !state.current) {
           return;
@@ -1778,15 +1803,15 @@
 
       function renderStats() {
         if (state.running && state.levelStats) {
-          statLevel.textContent = (state.levelIndex + 1) + ' / ' + state.levels.length;
-          statRound.textContent = state.levelStats.withSyndrome + '/' + targetInteractiveRounds;
-          statLogical.textContent = String(state.levelStats.logicalErrors);
-          statNoSyndrome.textContent = String(state.levelStats.withoutSyndrome);
+          setNodeText(statLevel, (state.levelIndex + 1) + ' / ' + state.levels.length);
+          setNodeText(statRound, state.levelStats.withSyndrome + '/' + targetInteractiveRounds);
+          setNodeText(statLogical, state.levelStats.logicalErrors);
+          setNodeText(statNoSyndrome, state.levelStats.withoutSyndrome);
         } else {
-          statLevel.textContent = '-';
-          statRound.textContent = '-';
-          statLogical.textContent = '-';
-          statNoSyndrome.textContent = '-';
+          setNodeText(statLevel, '-');
+          setNodeText(statRound, '-');
+          setNodeText(statLogical, '-');
+          setNodeText(statNoSyndrome, '-');
         }
         const totalInteractiveRounds = state.levels.length * targetInteractiveRounds;
         let completedInteractiveRounds = (state.levelsData || []).reduce((sum, level) => {
@@ -1797,9 +1822,9 @@
         }
         if (targetRoundsLabel) {
           if (totalInteractiveRounds > 0) {
-            targetRoundsLabel.textContent = completedInteractiveRounds + '/' + totalInteractiveRounds;
+            setNodeText(targetRoundsLabel, completedInteractiveRounds + '/' + totalInteractiveRounds);
           } else {
-            targetRoundsLabel.textContent = '0/0';
+            setNodeText(targetRoundsLabel, '0/0');
           }
         }
         if (selectRounds && selectRounds.value !== String(targetInteractiveRounds)) {
@@ -1879,7 +1904,7 @@
         nextRoundBtn.disabled = true;
         summaryCard.classList.remove('visible');
         summaryOutput.textContent = 'No data yet.';
-        levelLabel.textContent = '-';
+        setNodeText(levelLabel, '-');
         setStatus('', false);
         clearBoard();
         startBtn.disabled = false;
@@ -1958,7 +1983,7 @@
           logicalErrors: 0,
           events: [],
         };
-        levelLabel.textContent = (state.levelIndex + 1) + ' (p = ' + probability + ')';
+        setNodeText(levelLabel, (state.levelIndex + 1) + ' (p = ' + probability + ')');
         addLog('Level ' + (state.levelIndex + 1) + ' started with p=' + probability + '.');
         state.current = null;
         setStatus('Generating rounds...', false);
@@ -2172,6 +2197,9 @@
       overlayClose.addEventListener('click', hideOverlay);
       statsOverlay.addEventListener('click', hideStatsOverlay);
       statsOverlayClose.addEventListener('click', hideStatsOverlay);
+      if (boardEl) {
+        boardEl.addEventListener('click', handleBoardClick);
+      }
       window.addEventListener('resize', requestBoardScale);
 
       document.addEventListener('keydown', (event) => {
