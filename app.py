@@ -26,7 +26,7 @@ LEVEL_PRECISION = 3
 ALLOWED_LEVEL_COUNTS = tuple(range(3, 11))
 DEFAULT_LEVEL_COUNT = 5
 ALLOWED_ROUNDS_PER_LEVEL = tuple(range(1, 11))
-DEFAULT_ROUNDS_PER_LEVEL = 3
+DEFAULT_ROUNDS_PER_LEVEL = 2
 
 
 def _generate_levels(count: int) -> list[float]:
