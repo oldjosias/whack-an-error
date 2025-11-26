@@ -130,6 +130,47 @@
       border-color: rgba(205, 215, 255, 0.18);
       opacity: 0.9;
     }
+    .stats-overlay-content {
+      display: grid;
+      gap: 18px;
+    }
+    .stats-section {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(18, 22, 50, 0.78);
+      border: 1px solid rgba(110, 130, 255, 0.24);
+    }
+    .stats-section h3 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+    .stats-chart {
+      width: 100%;
+      max-width: 560px;
+      height: 280px;
+      display: block;
+      border-radius: 12px;
+      background: rgba(6, 10, 34, 0.6);
+      border: 1px solid rgba(90, 110, 255, 0.22);
+      margin-bottom: 12px;
+    }
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    .stats-table thead {
+      background: rgba(14, 18, 44, 0.8);
+    }
+    .stats-table th,
+    .stats-table td {
+      padding: 6px 10px;
+      border: 1px solid rgba(80, 100, 200, 0.2);
+      text-align: left;
+    }
+    .stats-table tbody tr:nth-child(odd) {
+      background: rgba(12, 16, 42, 0.6);
+    }
     button:disabled {
       opacity: 0.6;
       cursor: wait;
@@ -282,13 +323,10 @@
       background: linear-gradient(135deg, rgba(242, 94, 139, 0.85), rgba(200, 76, 188, 0.85));
     }
     .qubit.corrected {
-      box-shadow: inset 0 0 0 2px rgba(115, 255, 202, 0.9);
+      box-shadow: inset 0 0 0 3px rgba(115, 255, 202, 0.9);
     }
     .qubit.residual {
       border-color: rgba(255, 189, 99, 0.9);
-    }
-    .qubit.edge {
-      border-style: dashed;
     }
     .qubit:disabled {
       cursor: default;
@@ -487,7 +525,8 @@
 
       <div class="actions">
         <button type="button" class="primary" id="start-game">Start Game</button>
-        <button type="button" class="secondary expert-only" id="show-data">Show Data</button>
+        <button type="button" class="secondary" id="show-stats">Show Stats</button>
+        <button type="button" class="secondary expert-only" id="show-data">Show Raw Data</button>
         <button type="button" class="ghost" id="reset-game">Reset</button>
       </div>
 
@@ -518,8 +557,8 @@
     <main class="panel game-surface">
       <div class="board-wrapper">
         <div class="board-meta">
-          <div><strong>Current level:</strong> <span id="level-label">-</span></div>
-          <div><strong>Target interactive rounds:</strong> <span id="target-rounds">{{ rounds_per_level }}</span></div>
+          <div><strong>Current level:</strong> <span id="level-label"></span></div>
+          <div><strong>Interactive rounds (overall):</strong> <span id="target-rounds">0/0</span></div>
         </div>
         <div class="board" id="board" aria-live="polite"></div>
         <p class="status-line" id="status-line" role="status" aria-live="polite"></p>
@@ -542,6 +581,14 @@
       <button class="overlay-close" id="overlay-close" aria-label="Close">x</button>
       <h2 id="overlay-title">Stored game runs</h2>
       <pre id="overlay-output">Loading...</pre>
+    </div>
+  </div>
+
+  <div class="overlay" id="stats-overlay" role="dialog" aria-modal="true" aria-labelledby="stats-overlay-title">
+    <div class="overlay-card">
+      <button class="overlay-close" id="stats-overlay-close" aria-label="Close">x</button>
+      <h2 id="stats-overlay-title">Logical error rates</h2>
+      <div id="stats-overlay-output" class="stats-overlay-content">Loading...</div>
     </div>
   </div>
 
@@ -615,6 +662,7 @@
 
       const startBtn = document.getElementById('start-game');
       const resetBtn = document.getElementById('reset-game');
+      const showStatsBtn = document.getElementById('show-stats');
       const showDataBtn = document.getElementById('show-data');
       const nextRoundBtn = document.getElementById('next-round');
       const autoAdvanceToggle = document.getElementById('auto-advance-toggle');
@@ -633,6 +681,9 @@
       const overlay = document.getElementById('data-overlay');
       const overlayOutput = document.getElementById('overlay-output');
       const overlayClose = document.getElementById('overlay-close');
+      const statsOverlay = document.getElementById('stats-overlay');
+      const statsOverlayOutput = document.getElementById('stats-overlay-output');
+      const statsOverlayClose = document.getElementById('stats-overlay-close');
       const logList = document.getElementById('log-list');
       const statLevel = document.getElementById('stat-level');
       const statRound = document.getElementById('stat-round');
@@ -742,6 +793,345 @@
           clearAutoTimer();
         } else if (state.running && state.current) {
           maybeScheduleAutoContinue();
+        }
+      }
+
+      function aggregateLogicalErrorStats(records) {
+        const gridMap = new Map();
+        (records || []).forEach((record) => {
+          const gridSize = Number(record.grid_size);
+          if (!Number.isFinite(gridSize)) {
+            return;
+          }
+          const probabilityStats = Array.isArray(record.probability_stats) ? record.probability_stats : [];
+          const playerNameRaw = typeof record.name === 'string' ? record.name : '';
+          const playerName = playerNameRaw.trim() || 'Anonymous';
+          if (!gridMap.has(gridSize)) {
+            gridMap.set(gridSize, new Map());
+          }
+          const probMap = gridMap.get(gridSize);
+          probabilityStats.forEach((entry) => {
+            const probability = Number(entry.probability);
+            const totalRounds = Number(entry.total_rounds);
+            const logicalFailures = Number(entry.logical_failures);
+            if (!Number.isFinite(probability) || totalRounds <= 0 || !Number.isFinite(logicalFailures) || logicalFailures < 0) {
+              return;
+            }
+            let accumulator = probMap.get(probability);
+            if (!accumulator) {
+              accumulator = { totalRounds: 0, logicalFailures: 0, byName: new Map() };
+              probMap.set(probability, accumulator);
+            }
+            accumulator.totalRounds += totalRounds;
+            accumulator.logicalFailures += logicalFailures;
+
+            const byNameMap = accumulator.byName;
+            let nameAccumulator = byNameMap.get(playerName);
+            if (!nameAccumulator) {
+              nameAccumulator = { totalRounds: 0, logicalFailures: 0 };
+              byNameMap.set(playerName, nameAccumulator);
+            }
+            nameAccumulator.totalRounds += totalRounds;
+            nameAccumulator.logicalFailures += logicalFailures;
+          });
+        });
+
+        const result = [];
+        gridMap.forEach((probMap, gridSize) => {
+          const points = [];
+          let totals = { totalRounds: 0, logicalFailures: 0 };
+          probMap.forEach((accumulator, probability) => {
+            if (accumulator.totalRounds <= 0) {
+              return;
+            }
+            const ler = accumulator.logicalFailures / accumulator.totalRounds;
+            const variance = ler * (1 - ler) / accumulator.totalRounds;
+            const stderr = Number.isFinite(variance) && variance > 0 ? Math.sqrt(variance) : 0;
+            let bestName = null;
+            let bestRate = Infinity;
+            let bestRounds = 0;
+            const EPSILON = 1e-9;
+            (accumulator.byName || new Map()).forEach((value, name) => {
+              if (!value || value.totalRounds <= 0) {
+                return;
+              }
+              const nameRate = value.logicalFailures / value.totalRounds;
+              if (!Number.isFinite(nameRate)) {
+                return;
+              }
+              const betterRate = nameRate < bestRate - EPSILON;
+              const similarRate = Math.abs(nameRate - bestRate) <= EPSILON;
+              const moreRounds = value.totalRounds > bestRounds;
+              const tieBreaker = bestName === null || name.localeCompare(bestName, undefined, { sensitivity: 'base' }) < 0;
+              if (betterRate || (similarRate && (moreRounds || (value.totalRounds === bestRounds && tieBreaker)))) {
+                bestRate = nameRate;
+                bestName = name;
+                bestRounds = value.totalRounds;
+              }
+            });
+            points.push({
+              probability,
+              totalRounds: accumulator.totalRounds,
+              logicalFailures: accumulator.logicalFailures,
+              logicalErrorRate: ler,
+              stderr,
+              bestName,
+              bestRate: Number.isFinite(bestRate) ? bestRate : null,
+            });
+            totals.totalRounds += accumulator.totalRounds;
+            totals.logicalFailures += accumulator.logicalFailures;
+          });
+          if (points.length) {
+            points.sort((a, b) => a.probability - b.probability);
+            result.push({ gridSize, points, totals });
+          }
+        });
+        result.sort((a, b) => a.gridSize - b.gridSize);
+        return result;
+      }
+
+      function drawStatsChart(canvas, points) {
+        if (!canvas || !canvas.getContext || !Array.isArray(points) || !points.length) {
+          return;
+        }
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const cssWidth = canvas.clientWidth || canvas.width || 560;
+        const cssHeight = canvas.clientHeight || canvas.height || 280;
+        const actualWidth = Math.max(1, Math.round(cssWidth * dpr));
+        const actualHeight = Math.max(1, Math.round(cssHeight * dpr));
+        if (canvas.width !== actualWidth) {
+          canvas.width = actualWidth;
+        }
+        if (canvas.height !== actualHeight) {
+          canvas.height = actualHeight;
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, actualWidth, actualHeight);
+        ctx.scale(dpr, dpr);
+        const width = cssWidth;
+        const height = cssHeight;
+
+        const margin = 48;
+        const chartWidth = width - margin * 2;
+        const chartHeight = height - margin * 2;
+        const minProb = 0;
+        const maxProb = Math.max(...points.map((p) => p.probability), 0.01);
+        let maxRate = Math.max(...points.map((p) => p.logicalErrorRate + p.stderr), 0.001);
+        if (!Number.isFinite(maxRate) || maxRate <= 0) {
+          maxRate = 0.001;
+        }
+        const paddedMaxRate = maxRate * 1.2;
+
+        const probRange = Math.max(maxProb - minProb, 0.001);
+        const rateRange = Math.max(paddedMaxRate, 0.001);
+
+        const projectX = (probability) => {
+          return margin + ((probability - minProb) / probRange) * chartWidth;
+        };
+        const projectY = (rate) => {
+          return margin + chartHeight - Math.max(0, Math.min(rate, rateRange)) / rateRange * chartHeight;
+        };
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(120, 150, 255, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margin, margin);
+        ctx.lineTo(margin, margin + chartHeight);
+        ctx.lineTo(margin + chartWidth, margin + chartHeight);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(200, 210, 255, 0.65)';
+        ctx.font = '12px "Inter", sans-serif';
+        ctx.textBaseline = 'middle';
+        const tickCount = 4;
+        for (let i = 0; i <= tickCount; i += 1) {
+          const rateValue = (rateRange / tickCount) * i;
+          const y = projectY(rateValue);
+          ctx.strokeStyle = 'rgba(120, 150, 255, 0.12)';
+          ctx.beginPath();
+          ctx.moveTo(margin, y);
+          ctx.lineTo(margin + chartWidth, y);
+          ctx.stroke();
+          ctx.fillText(rateValue.toExponential(1), margin - 6, y);
+        }
+
+        ctx.textBaseline = 'top';
+        const xTickCount = Math.min(points.length, 6);
+        for (let i = 0; i <= xTickCount; i += 1) {
+          const ratio = xTickCount ? i / xTickCount : 0;
+          const probValue = minProb + ratio * probRange;
+          const x = projectX(probValue);
+          ctx.strokeStyle = 'rgba(120, 150, 255, 0.12)';
+          ctx.beginPath();
+          ctx.moveTo(x, margin);
+          ctx.lineTo(x, margin + chartHeight);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(200, 210, 255, 0.65)';
+          ctx.fillText(probValue.toFixed(3), x - 12, margin + chartHeight + 6);
+        }
+
+        ctx.strokeStyle = 'rgba(120, 200, 255, 0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = projectX(point.probability);
+          const y = projectY(point.logicalErrorRate);
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255, 170, 120, 0.8)';
+        ctx.lineWidth = 1;
+        points.forEach((point) => {
+          const x = projectX(point.probability);
+          const yCenter = projectY(point.logicalErrorRate);
+          const yTop = projectY(point.logicalErrorRate + point.stderr);
+          const yBottom = projectY(Math.max(point.logicalErrorRate - point.stderr, 0));
+          ctx.beginPath();
+          ctx.moveTo(x, yTop);
+          ctx.lineTo(x, yBottom);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - 4, yTop);
+          ctx.lineTo(x + 4, yTop);
+          ctx.moveTo(x - 4, yBottom);
+          ctx.lineTo(x + 4, yBottom);
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(120, 220, 255, 0.95)';
+          ctx.beginPath();
+          ctx.arc(x, yCenter, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(210, 220, 255, 0.75)';
+        ctx.font = '12px "Inter", sans-serif';
+        ctx.fillText('Physical error probability', margin + chartWidth / 2 - 80, height - 12);
+        ctx.save();
+        ctx.translate(14, margin + chartHeight / 2 + 60);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Logical error rate', 0, 0);
+        ctx.restore();
+      }
+
+      function formatRate(value) {
+        if (!Number.isFinite(value) || value < 0) {
+          return '0.0000';
+        }
+        if (value === 0) {
+          return '0.0000';
+        }
+        if (value < 1e-4) {
+          return value.toExponential(2);
+        }
+        return value.toFixed(4);
+      }
+
+      function renderStatsOverlayContent(sections) {
+        if (!statsOverlayOutput) {
+          return;
+        }
+        statsOverlayOutput.textContent = '';
+        if (!sections.length) {
+          const emptyMessage = document.createElement('p');
+          emptyMessage.textContent = 'Not enough data yet. Play a few sessions to generate statistics.';
+          statsOverlayOutput.appendChild(emptyMessage);
+          return;
+        }
+
+        sections.forEach((section) => {
+          const container = document.createElement('section');
+          container.className = 'stats-section';
+
+          const header = document.createElement('h3');
+          const totalRounds = section.totals?.totalRounds || 0;
+          const logicalFailures = section.totals?.logicalFailures || 0;
+          header.textContent = 'Code distance d = ' + section.gridSize + ' (' + totalRounds.toLocaleString() + ' rounds)';
+          container.appendChild(header);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = 560;
+          canvas.height = 280;
+          canvas.className = 'stats-chart';
+          container.appendChild(canvas);
+          drawStatsChart(canvas, section.points);
+
+          const table = document.createElement('table');
+          table.className = 'stats-table';
+          const thead = document.createElement('thead');
+          thead.innerHTML = '<tr><th>Probability</th><th>Total rounds</th><th>Logical failures</th><th>Logical error rate</th><th>Std. error</th><th>Best score</th></tr>';
+          table.appendChild(thead);
+          const tbody = document.createElement('tbody');
+          section.points.forEach((point) => {
+            const row = document.createElement('tr');
+            const stderrValue = Number.isFinite(point.stderr) ? point.stderr : 0;
+            const bestSummary = point.bestName && Number.isFinite(point.bestRate)
+              ? point.bestName + ' (' + formatRate(point.bestRate) + ')'
+              : '—';
+            row.innerHTML = [
+              point.probability.toFixed(3),
+              point.totalRounds.toLocaleString(),
+              point.logicalFailures.toLocaleString(),
+              formatRate(point.logicalErrorRate),
+              formatRate(stderrValue),
+              bestSummary,
+            ]
+              .map((value) => '<td>' + value + '</td>')
+              .join('');
+            tbody.appendChild(row);
+          });
+          table.appendChild(tbody);
+          container.appendChild(table);
+
+          const footer = document.createElement('p');
+          footer.style.margin = '10px 0 0';
+          const lerOverall = section.totals.totalRounds > 0 ? section.totals.logicalFailures / section.totals.totalRounds : 0;
+          footer.textContent = 'Aggregate logical error rate: ' + formatRate(lerOverall) + ' (' + section.totals.logicalFailures.toLocaleString() + ' / ' + section.totals.totalRounds.toLocaleString() + ')';
+          container.appendChild(footer);
+
+          statsOverlayOutput.appendChild(container);
+        });
+      }
+
+      function showStatsOverlay() {
+        if (!statsOverlay) {
+          return;
+        }
+        statsOverlay.classList.add('visible');
+        if (statsOverlayOutput) {
+          statsOverlayOutput.textContent = 'Loading...';
+        }
+        fetch('/api/game/data')
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+          })
+          .then((records) => {
+            const sections = aggregateLogicalErrorStats(records);
+            renderStatsOverlayContent(sections);
+          })
+          .catch((error) => {
+            if (statsOverlayOutput) {
+              statsOverlayOutput.textContent = 'Failed to load statistics: ' + error.message;
+            }
+          });
+      }
+
+      function hideStatsOverlay(event) {
+        if (!statsOverlay) {
+          return;
+        }
+        if (!event || event.target === statsOverlay || event.target === statsOverlayClose) {
+          statsOverlay.classList.remove('visible');
         }
       }
 
@@ -906,9 +1296,6 @@
           button.className = 'qubit';
           button.type = 'button';
           button.textContent = String(q.idx);
-          if (q.isEdge) {
-            button.classList.add('edge');
-          }
           button.dataset.idx = String(q.idx);
           button.disabled = true;
           button.addEventListener('click', () => handleQubitFlip(q.idx));
@@ -1016,7 +1403,20 @@
           statLogical.textContent = '-';
           statNoSyndrome.textContent = '-';
         }
-        targetRoundsLabel.textContent = String(targetInteractiveRounds);
+        const totalInteractiveRounds = state.levels.length * targetInteractiveRounds;
+        let completedInteractiveRounds = (state.levelsData || []).reduce((sum, level) => {
+          return sum + (Number(level.interactive_rounds) || 0);
+        }, 0);
+        if (state.running && state.levelStats) {
+          completedInteractiveRounds += state.levelStats.withSyndrome;
+        }
+        if (targetRoundsLabel) {
+          if (totalInteractiveRounds > 0) {
+            targetRoundsLabel.textContent = completedInteractiveRounds + '/' + totalInteractiveRounds;
+          } else {
+            targetRoundsLabel.textContent = '0/0';
+          }
+        }
         if (selectRounds && selectRounds.value !== String(targetInteractiveRounds)) {
           selectRounds.value = String(targetInteractiveRounds);
         }
@@ -1173,7 +1573,7 @@
           logicalErrors: 0,
           events: [],
         };
-        levelLabel.textContent = (state.levelIndex + 1) + ' - p = ' + probability;
+        levelLabel.textContent = (state.levelIndex + 1) + ' (p = ' + probability + ')';
         addLog('Level ' + (state.levelIndex + 1) + ' started with p=' + probability + '.');
         state.current = null;
         setStatus('Generating rounds...', false);
@@ -1380,14 +1780,20 @@
 
       startBtn.addEventListener('click', startGame);
       resetBtn.addEventListener('click', resetState);
+      showStatsBtn.addEventListener('click', showStatsOverlay);
       showDataBtn.addEventListener('click', showDataOverlay);
       nextRoundBtn.addEventListener('click', handleContinue);
       overlay.addEventListener('click', hideOverlay);
       overlayClose.addEventListener('click', hideOverlay);
+      statsOverlay.addEventListener('click', hideStatsOverlay);
+      statsOverlayClose.addEventListener('click', hideStatsOverlay);
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           overlay.classList.remove('visible');
+          if (statsOverlay) {
+            statsOverlay.classList.remove('visible');
+          }
         }
       });
 
