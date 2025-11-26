@@ -720,9 +720,9 @@
         <p class="toggle-hint">Reveal advanced controls and diagnostics.</p>
       </div>
 
-      <div class="form-field expert-only">
+      <div class="form-field">
         <label for="player-name">Your name</label>
-        <input id="player-name" type="text" placeholder="Optional" maxlength="100" data-expert-control="true" />
+        <input id="player-name" type="text" placeholder="Optional" maxlength="100" />
       </div>
 
       <div class="form-field">
@@ -1526,9 +1526,6 @@
         document.body.classList.toggle('expert-mode', isExpert);
         setExpertControlsDisabled(!isExpert);
         if (!isExpert) {
-          if (playerNameInput) {
-            playerNameInput.value = '';
-          }
           if (!state.running) {
             selectedLevelCount = baseLevelCount;
             state.levelCount = baseLevelCount;
@@ -1923,10 +1920,7 @@
           return;
         }
         const isExpert = Boolean(expertToggle && expertToggle.checked);
-        let playerName = '';
-        if (isExpert && playerNameInput) {
-          playerName = playerNameInput.value.trim();
-        }
+        const playerName = playerNameInput ? playerNameInput.value.trim() : '';
         if (isExpert && selectRounds) {
           const selectedRounds = Number.parseInt(selectRounds.value, 10);
           if (Number.isFinite(selectedRounds) && allowedRoundOptions.includes(selectedRounds)) {
@@ -1943,7 +1937,7 @@
           }
         }
         resetState();
-        state.playerName = state.expertMode && playerName ? playerName : null;
+        state.playerName = playerName ? playerName : null;
         state.running = true;
         state.surface = new SurfaceCode(distance);
         state.sessionId = uuid();
