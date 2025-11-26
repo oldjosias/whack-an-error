@@ -15,7 +15,7 @@ class GameData(Base):
 
     __tablename__ = "game_data"
 
-    uid = Column(String(8), primary_key=True)
+    uid = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     name = Column(String(100))
     grid_size = Column(Integer, nullable=False)
@@ -78,6 +78,15 @@ class DatabaseManager:
                 with self.engine.begin() as connection:
                     connection.execute(
                         text("ALTER TABLE game_data ADD COLUMN probability_stats TEXT")
+                    )
+            except Exception:
+                pass
+
+        if self.engine.dialect.name == "postgresql":
+            try:
+                with self.engine.begin() as connection:
+                    connection.execute(
+                        text("ALTER TABLE game_data ALTER COLUMN uid TYPE VARCHAR(32)")
                     )
             except Exception:
                 pass

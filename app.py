@@ -9,12 +9,15 @@ from __future__ import annotations
 import json
 import os
 import uuid
+from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from database import DatabaseManager, GameData
-
+import logging, sys
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 app = Flask(__name__)
 db_manager = DatabaseManager()
@@ -51,6 +54,19 @@ print(
     f"Database mode: {'PostgreSQL' if os.environ.get('DATABASE_URL') else 'SQLite (local)'}"
 )
 print("=" * 60)
+
+
+def _generate_uid() -> str:
+    return uuid.uuid4().hex
+
+
+def _normalize_uid(raw_value: object) -> str | None:
+    if raw_value is None:
+        return None
+    cleaned = "".join(ch for ch in str(raw_value).strip() if ch.isalnum())
+    if not cleaned:
+        return None
+    return cleaned.lower()[:32]
 
 
 def _parse_json_array(raw_value, coercer):
@@ -180,7 +196,8 @@ def api_game_data():
 @app.route("/api/game/save", methods=["POST"])
 def api_game_save():
     payload = request.get_json(silent=True) or {}
-    uid = (payload.get("uid") or uuid.uuid4().hex)[:8]
+    provided_uid = _normalize_uid(payload.get("uid"))
+    uid = provided_uid or _generate_uid()
 
     try:
         grid_size = int(payload.get("grid_size"))
@@ -197,22 +214,47 @@ def api_game_save():
             for value in error_probabilities
         ]
 
-    record = GameData(
-        uid=uid,
-        name=payload.get("name"),
-        grid_size=grid_size,
-        error_probabilities=json.dumps(error_probabilities),
-        probability_stats=json.dumps(probability_stats),
-    )
+    error_probabilities_json = json.dumps(error_probabilities)
+    probability_stats_json = json.dumps(probability_stats)
+    name_value = payload.get("name")
 
-    try:
-        db_manager.session.add(record)
-        db_manager.session.commit()
-    except Exception as exc:  # pragma: no cover - database failure
-        db_manager.session.rollback()
-        return jsonify({"status": "error", "message": str(exc)}), 500
+    existing_record = db_manager.session.get(GameData, uid) if provided_uid else None
+    if existing_record:
+        existing_record.timestamp = datetime.utcnow()
+        existing_record.name = name_value
+        existing_record.grid_size = grid_size
+        existing_record.error_probabilities = error_probabilities_json
+        existing_record.probability_stats = probability_stats_json
+        try:
+            db_manager.session.commit()
+        except Exception as exc:  # pragma: no cover - database failure
+            db_manager.session.rollback()
+            return jsonify({"status": "error", "message": str(exc)}), 500
+        return jsonify({"status": "updated", "uid": uid})
 
-    return jsonify({"status": "stored", "uid": uid})
+    attempts = 0
+    while attempts < 5:
+        record = GameData(
+            uid=uid,
+            name=name_value,
+            grid_size=grid_size,
+            error_probabilities=error_probabilities_json,
+            probability_stats=probability_stats_json,
+        )
+        try:
+            db_manager.session.add(record)
+            db_manager.session.commit()
+            return jsonify({"status": "stored", "uid": uid})
+        except IntegrityError:
+            db_manager.session.rollback()
+            uid = _generate_uid()
+            attempts += 1
+            continue
+        except Exception as exc:  # pragma: no cover - database failure
+            db_manager.session.rollback()
+            return jsonify({"status": "error", "message": str(exc)}), 500
+
+    return jsonify({"status": "error", "message": "could not allocate uid"}), 500
 
 
 if __name__ == "__main__":
