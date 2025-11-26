@@ -62,6 +62,8 @@
       padding: 26px;
       box-shadow: var(--panel-shadow);
       image-rendering: pixelated;
+      box-sizing: border-box;
+      width: 100%;
     }
     h1 {
       margin: 0 0 16px;
@@ -148,6 +150,7 @@
       cursor: pointer;
       transition: transform 160ms steps(4, end), box-shadow 160ms steps(4, end);
       box-shadow: 4px 4px 0 #020410;
+      min-width: 0;
     }
     button.primary {
       background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-primary-dark) 100%);
@@ -175,6 +178,17 @@
     .stats-overlay-content {
       display: grid;
       gap: 18px;
+      width: 100%;
+      max-width: 100%;
+    }
+    #stats-overlay-output {
+      flex: 1 1 auto;
+      overflow: auto;
+      padding-right: 6px;
+      min-height: 0;
+      max-height: 100%;
+      width: 100%;
+      box-sizing: border-box;
     }
     .stats-section {
       padding: 16px;
@@ -182,6 +196,13 @@
       background: rgba(12, 18, 44, 0.92);
       border: var(--pixel-border) solid rgba(121, 202, 255, 0.65);
       box-shadow: 6px 6px 0 #020410;
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+    .stats-table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 12px;
+      max-width: 100%;
     }
     .stats-section h3 {
       margin: 0 0 12px;
@@ -191,7 +212,7 @@
     }
     .stats-chart {
       width: 100%;
-      max-width: 560px;
+      max-width: min(560px, 100%);
       height: 280px;
       display: block;
       border-radius: var(--pixel-radius);
@@ -206,6 +227,7 @@
       font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      min-width: 420px;
     }
     .stats-table thead {
       background: rgba(12, 20, 48, 0.95);
@@ -324,6 +346,7 @@
       border: var(--pixel-border) solid rgba(114, 182, 255, 0.5);
       box-shadow: var(--pixel-shadow-strong);
       scroll-margin-top: 18px;
+      overflow: hidden;
     }
     .board-meta {
       display: flex;
@@ -348,6 +371,12 @@
       border: var(--pixel-border) solid rgba(76, 120, 232, 0.4);
       border-radius: var(--pixel-radius);
       box-shadow: inset 6px 6px 0 rgba(6, 10, 28, 0.7);
+      max-width: min(100%, min(80vh, 560px));
+      width: min(100%, min(80vh, 560px));
+      height: auto;
+      aspect-ratio: 1 / 1;
+      box-sizing: border-box;
+      margin: 0 auto;
     }
     .cell {
       position: relative;
@@ -438,6 +467,15 @@
       transform: translate(-2px, -2px);
       box-shadow: 6px 6px 0 #020410;
     }
+    @media (max-width: 960px) {
+      body {
+        padding: 24px 20px;
+      }
+      .app-shell {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
     @media (max-width: 720px) {
       :root {
         --cell-min-size: 36px;
@@ -446,11 +484,26 @@
         --stabilizer-size: 30px;
         --qubit-font-size: 0.82rem;
       }
+      body {
+        padding: 24px 16px;
+      }
+      .panel {
+        padding: 22px;
+      }
       .board-wrapper {
         padding: 20px;
       }
       .log {
         max-height: 200px;
+      }
+      .actions {
+        gap: 12px;
+      }
+      .actions button {
+        flex: 1 1 100%;
+      }
+      .stats-table {
+        min-width: 360px;
       }
     }
     @media (max-width: 540px) {
@@ -470,6 +523,19 @@
       .log {
         max-height: 180px;
       }
+      button {
+        font-size: 0.68rem;
+        padding: 10px 14px;
+      }
+      .panel {
+        padding: 18px;
+      }
+      .stats-section {
+        padding: 14px;
+      }
+      .stats-table {
+        min-width: 320px;
+      }
     }
     @media (max-width: 420px) {
       :root {
@@ -482,8 +548,23 @@
       body {
         padding: 14px;
       }
+      .panel {
+        padding: 16px;
+      }
       .board-wrapper {
         padding: 14px;
+      }
+      .stats-table {
+        min-width: 280px;
+      }
+      h1 {
+        font-size: 1rem;
+      }
+      h2 {
+        font-size: 0.8rem;
+      }
+      p.subtitle {
+        font-size: 0.64rem;
       }
     }
     .status-line {
@@ -505,6 +586,8 @@
       border: var(--pixel-border) solid rgba(114, 182, 255, 0.45);
       box-shadow: 6px 6px 0 #020410;
       display: none;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .summary-card.visible {
       display: block;
@@ -519,6 +602,10 @@
       border: 1px solid rgba(86, 128, 240, 0.28);
       font-size: 0.68rem;
       letter-spacing: 0.04em;
+      box-sizing: border-box;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: pre-wrap;
     }
     .overlay {
       position: fixed;
@@ -537,9 +624,11 @@
       background: rgba(10, 18, 44, 0.96);
       padding: 28px;
       border-radius: var(--pixel-radius);
-      width: min(720px, 100%);
+      width: min(720px, calc(100% - 24px));
       max-height: 82vh;
-      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       border: var(--pixel-border) solid rgba(118, 190, 255, 0.45);
       position: relative;
       box-shadow: var(--pixel-shadow-strong);
@@ -574,14 +663,6 @@
       box-shadow: 4px 4px 0 #020410;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-    }
-    @media (max-width: 960px) {
-      body {
-        padding: 18px;
-      }
-      .app-shell {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
@@ -1187,7 +1268,10 @@
             tbody.appendChild(row);
           });
           table.appendChild(tbody);
-          container.appendChild(table);
+          const tableWrapper = document.createElement('div');
+          tableWrapper.className = 'stats-table-wrapper';
+          tableWrapper.appendChild(table);
+          container.appendChild(tableWrapper);
 
           const footer = document.createElement('p');
           footer.style.margin = '10px 0 0';
