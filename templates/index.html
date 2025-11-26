@@ -474,6 +474,11 @@
       background: rgba(255, 255, 255, 0.18);
       color: inherit;
       font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
       cursor: pointer;
     }
     @media (max-width: 960px) {
@@ -490,7 +495,7 @@
   <div class="app-shell">
     <aside class="panel">
       <h1>Whack-an-Error</h1>
-      <p class="subtitle">Explore the surface-code correction loop. Flip qubits to clear the syndrome without inducing a logical error.</p>
+      <p class="subtitle">Explore surface-code error correction. Flip qubits to clear the syndrome without inducing a logical error.</p>
 
       <div class="form-field">
         <label class="toggle" for="expert-toggle">
@@ -531,7 +536,7 @@
       </div>
 
       <div class="form-field expert-only">
-        <label for="config-rounds">Interactive rounds per level</label>
+        <label for="config-rounds">Rounds per level</label>
         <select id="config-rounds" aria-label="Select rounds per level" data-expert-control="true">
           {% for value in allowed_rounds %}
           <option value="{{ value }}" {% if value == rounds_per_level %}selected{% endif %}>{{ value }} rounds</option>
@@ -543,9 +548,9 @@
 
       <div class="stats">
         <div><strong>Level:</strong> <span id="stat-level">-</span></div>
-        <div><strong>Interactive rounds:</strong> <span id="stat-round">-</span></div>
+        <div><strong>Rounds:</strong> <span id="stat-round">-</span></div>
         <div><strong>Logical errors:</strong> <span id="stat-logical">-</span></div>
-        <div><strong>No syndrome rounds:</strong> <span id="stat-nosyndrome">-</span></div>
+        <div><strong>Empty syndrome rounds:</strong> <span id="stat-nosyndrome">-</span></div>
       </div>
 
       <div class="log expert-only">
@@ -558,7 +563,7 @@
       <div class="board-wrapper">
         <div class="board-meta">
           <div><strong>Current level:</strong> <span id="level-label"></span></div>
-          <div><strong>Interactive rounds (overall):</strong> <span id="target-rounds">0/0</span></div>
+          <div><strong>Rounds (overall):</strong> <span id="target-rounds">0/0</span></div>
         </div>
         <div class="board" id="board" aria-live="polite"></div>
         <p class="status-line" id="status-line" role="status" aria-live="polite"></p>
@@ -1383,7 +1388,7 @@
           }
           renderStats();
           if (levelStats.withSyndrome >= targetInteractiveRounds) {
-            addLog('Target number of interactive rounds reached for this level.');
+            addLog('Target number of rounds with syndrome reached for this level.');
           }
           maybeScheduleAutoContinue();
         } else {
@@ -1620,7 +1625,7 @@
           residual: error.slice(),
           syndrome,
         };
-        addLog('Interactive round ' + (levelStats.withSyndrome + 1) + ' ready. Syndrome weight ' + sumVector(syndrome) + '.');
+        addLog('Round ' + (levelStats.withSyndrome + 1) + ' ready. Syndrome weight ' + sumVector(syndrome) + '.');
         setStatus('Flip qubits to clear the syndrome.', false);
         setControlsEnabled(true);
         nextRoundBtn.disabled = true;
