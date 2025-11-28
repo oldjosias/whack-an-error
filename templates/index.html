@@ -407,6 +407,7 @@
       --board-size: 1;
       --board-scale: 1;
       grid-template-columns: repeat(var(--board-size), minmax(calc(var(--cell-min-size) * var(--board-scale, 1)), 1fr));
+      grid-auto-rows: minmax(calc(var(--cell-min-size) * var(--board-scale, 1)), 1fr);
       justify-items: stretch;
       background:
         repeating-linear-gradient(0deg, rgba(18, 32, 72, 0.35) 0 2px, transparent 2px 48px),
@@ -427,18 +428,27 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: calc(var(--cell-min-height) * var(--board-scale, 1));
+      aspect-ratio: 1 / 1;
+      min-height: 0;
+      min-width: 0;
+      width: 100%;
       background: rgba(8, 14, 36, 0.7);
       border: 1px solid rgba(60, 92, 180, 0.35);
       box-shadow: inset 4px 4px 0 rgba(4, 8, 20, 0.6);
+      overflow: hidden;
     }
     .cell.placeholder {
       color: rgba(220, 224, 255, 0.8);
       font-size: 0.75rem;
-      padding: 16px;
       text-align: center;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      grid-column: 1 / -1;
+      grid-row: 1 / -1;
+      min-height: 180px;
     }
     .cell::after {
       display: none;
@@ -451,6 +461,9 @@
       z-index: 2;
       width: 100%;
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border-radius: var(--pixel-radius);
       border: var(--pixel-border) solid rgba(102, 162, 255, 0.65);
       background: linear-gradient(180deg, rgba(120, 182, 255, 0.95) 0%, rgba(64, 108, 232, 0.95) 100%);
@@ -489,8 +502,8 @@
     .stabilizer {
       position: relative;
       z-index: 1;
-      width: calc(var(--stabilizer-size) * var(--board-scale, 1));
-      height: calc(var(--stabilizer-size) * var(--board-scale, 1));
+      width: min(100%, calc(var(--stabilizer-size) * var(--board-scale, 1)));
+      height: min(100%, calc(var(--stabilizer-size) * var(--board-scale, 1)));
       border-radius: var(--pixel-radius);
       background: rgba(68, 102, 220, 0.65);
       border: var(--pixel-border) solid rgba(112, 164, 255, 0.65);
