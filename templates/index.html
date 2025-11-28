@@ -139,6 +139,11 @@
       gap: 16px;
       margin: 24px 0 12px;
     }
+    .actions .is-restart {
+      background: rgba(118, 190, 255, 0.22);
+      border-color: rgba(118, 190, 255, 0.65);
+      color: #f2f7ff;
+    }
     button {
       border: var(--pixel-border) solid #101527;
       border-radius: var(--pixel-radius);
@@ -322,7 +327,6 @@
       }
     }
     .meta-label {
-      margin-top: 12px;
       font-size: 0.65rem;
       color: var(--text-soft);
       letter-spacing: 0.06em;
@@ -613,10 +617,44 @@
       font-size: 0.7rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #d9e6ff;
+      padding: 10px 14px;
+      border-radius: var(--pixel-radius);
+      border: var(--pixel-border) solid rgba(118, 190, 255, 0.35);
+      background: rgba(16, 26, 56, 0.82);
+      color: #dfeaff;
+      box-shadow: inset 0 0 0 rgba(0, 0, 0, 0);
+      transition: background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
     }
-    .status-line.error {
-      color: #ff8094;
+    .status-line.is-info {
+      background: rgba(16, 26, 56, 0.82);
+      border-color: rgba(118, 190, 255, 0.45);
+      color: #dfeaff;
+    }
+    .status-line.is-success {
+      background: rgba(46, 160, 120, 0.94);
+      border-color: rgba(164, 238, 208, 0.9);
+      color: #03140e;
+      box-shadow: 0 0 14px rgba(46, 160, 120, 0.38);
+    }
+    .status-line.is-error {
+      background: rgba(214, 68, 104, 0.94);
+      border-color: rgba(255, 152, 180, 0.88);
+      color: #2a070f;
+      box-shadow: 0 0 14px rgba(214, 68, 104, 0.42);
+    }
+    .status-line.flash {
+      animation: statusFlash 420ms ease;
+    }
+    @keyframes statusFlash {
+      0% {
+        transform: scale(0.98);
+      }
+      45% {
+        transform: scale(1.03);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
     .summary-card {
       margin-top: 18px;
@@ -632,20 +670,154 @@
     .summary-card.visible {
       display: block;
     }
-    .summary-card pre {
-      margin-top: 12px;
-      max-height: 220px;
-      overflow: auto;
+    .summary-output {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      color: #dfe6ff;
+    }
+    .summary-output .summary-placeholder {
+      margin: 0;
+      padding: 14px 16px;
+      border-radius: var(--pixel-radius);
       background: rgba(6, 10, 34, 0.72);
+      border: 1px solid rgba(86, 128, 240, 0.28);
+      color: rgba(207, 220, 255, 0.74);
+    }
+    .summary-section {
       padding: 16px;
       border-radius: var(--pixel-radius);
+      background: rgba(6, 10, 34, 0.72);
       border: 1px solid rgba(86, 128, 240, 0.28);
+      box-shadow: inset 0 0 0 1px rgba(14, 32, 84, 0.18);
+    }
+    .summary-section h3 {
+      margin: 0 0 12px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #cde5ff;
+    }
+    .summary-subtitle {
+      margin: 14px 0 6px;
+      font-size: 0.64rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(204, 220, 255, 0.76);
+    }
+    .summary-note {
+      margin: 6px 0 0;
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+      color: rgba(204, 220, 255, 0.72);
+    }
+    .summary-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+    .summary-grid-item {
+      padding: 12px;
+      border-radius: var(--pixel-radius);
+      background: rgba(16, 24, 56, 0.82);
+      border: 1px solid rgba(86, 128, 240, 0.28);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .summary-grid-item .label {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(204, 220, 255, 0.68);
+    }
+    .summary-grid-item .value {
+      font-size: 0.78rem;
+      color: #f5f8ff;
+      word-break: break-word;
+    }
+    .summary-probabilities {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .summary-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(118, 184, 255, 0.18);
+      border: 1px solid rgba(118, 184, 255, 0.4);
+      color: #dceaff;
       font-size: 0.68rem;
       letter-spacing: 0.04em;
-      box-sizing: border-box;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      white-space: pre-wrap;
+    }
+    .summary-table-wrapper {
+      overflow: auto;
+      max-height: 220px;
+      border-radius: var(--pixel-radius);
+      border: 1px solid rgba(86, 128, 240, 0.18);
+      background: rgba(8, 14, 38, 0.72);
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.7rem;
+      letter-spacing: 0.03em;
+    }
+    .summary-table thead {
+      background: rgba(30, 48, 94, 0.78);
+      color: #f0f6ff;
+      text-transform: uppercase;
+    }
+    .summary-table th,
+    .summary-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(86, 128, 240, 0.24);
+    }
+    .summary-table tbody tr:nth-child(odd) {
+      background: rgba(18, 28, 64, 0.68);
+    }
+    .summary-bars {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .summary-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .summary-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      color: #cfe0ff;
+    }
+    .summary-bar-track {
+      position: relative;
+      height: 12px;
+      border-radius: var(--pixel-radius);
+      background: rgba(8, 14, 38, 0.88);
+      border: 1px solid rgba(86, 128, 240, 0.28);
+      overflow: hidden;
+    }
+    .summary-bar-fill {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(118, 186, 255, 0.95), rgba(186, 142, 255, 0.95));
+      box-shadow: 0 0 12px rgba(126, 190, 255, 0.45);
+      transition: width 200ms ease-out;
+    }
+    .summary-bar-fill.is-zero {
+      background: rgba(118, 186, 255, 0.4);
+      box-shadow: none;
     }
     .overlay {
       position: fixed;
@@ -791,7 +963,9 @@
       <section class="summary-card" id="summary-card">
         <h2>Session summary</h2>
         <p>Final statistics for this run. They are stored in the database.</p>
-        <pre id="summary-output">No data yet.</pre>
+        <div id="summary-output" class="summary-output">
+          <p class="summary-placeholder">No data yet.</p>
+        </div>
       </section>
     </main>
   </div>
@@ -939,6 +1113,8 @@
 
       let boardScaleFrameId = null;
       let lastStatsSignature = null;
+      let statusFlashTimer = null;
+      let nextButtonMode = 'continue';
 
       function setNodeText(node, value) {
         if (!node) {
@@ -1013,9 +1189,56 @@
         });
       }
 
-      function setStatus(message, isError) {
+      function setStatus(message, variant) {
+        if (!statusLine) {
+          return;
+        }
         setNodeText(statusLine, message);
-        statusLine.classList.toggle('error', Boolean(isError));
+        let normalized;
+        if (typeof variant === 'string') {
+          normalized = variant.toLowerCase();
+        } else if (variant === true) {
+          normalized = 'error';
+        } else {
+          normalized = 'info';
+        }
+        if (normalized !== 'error' && normalized !== 'success') {
+          normalized = 'info';
+        }
+        statusLine.classList.remove('is-error', 'is-success', 'is-info');
+        statusLine.classList.add('is-' + normalized);
+        if (statusFlashTimer !== null) {
+          window.clearTimeout(statusFlashTimer);
+          statusFlashTimer = null;
+        }
+        statusLine.classList.remove('flash');
+        if (message) {
+          const triggerFlash = () => {
+            statusLine.classList.add('flash');
+            statusFlashTimer = window.setTimeout(() => {
+              statusLine.classList.remove('flash');
+              statusFlashTimer = null;
+            }, 420);
+          };
+          if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(triggerFlash);
+          } else {
+            triggerFlash();
+          }
+        }
+      }
+
+      function setNextButtonMode(mode) {
+        if (!nextRoundBtn) {
+          nextButtonMode = 'continue';
+          return;
+        }
+        const normalized = mode === 'restart' ? 'restart' : 'continue';
+        nextButtonMode = normalized;
+        nextRoundBtn.dataset.mode = normalized;
+        const label = normalized === 'restart' ? 'Restart' : 'Continue';
+        setNodeText(nextRoundBtn, label);
+        nextRoundBtn.classList.toggle('is-restart', normalized === 'restart');
       }
 
       function addLog(message) {
@@ -1473,6 +1696,183 @@
         statsOverlayOutput.appendChild(fragment);
       }
 
+      function formatProbabilityValue(value) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+          return '—';
+        }
+        if (numeric === 0) {
+          return '0.000';
+        }
+        if (Math.abs(numeric) < 0.001) {
+          return numeric.toExponential(2);
+        }
+        return numeric.toFixed(3);
+      }
+
+      function createSummarySection(title) {
+        const section = document.createElement('div');
+        section.className = 'summary-section';
+        if (title) {
+          const heading = document.createElement('h3');
+          heading.textContent = title;
+          section.appendChild(heading);
+        }
+        return section;
+      }
+
+      function renderSummaryCard(summary) {
+        if (!summaryOutput) {
+          return;
+        }
+        summaryOutput.textContent = '';
+        if (!summary) {
+          const placeholder = document.createElement('p');
+          placeholder.className = 'summary-placeholder';
+          placeholder.textContent = 'No data yet.';
+          summaryOutput.appendChild(placeholder);
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        const metaSection = createSummarySection('Stored metadata');
+        const metaGrid = document.createElement('div');
+        metaGrid.className = 'summary-grid';
+
+        const appendMeta = (label, value) => {
+          const item = document.createElement('div');
+          item.className = 'summary-grid-item';
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'label';
+          labelSpan.textContent = label;
+          const valueSpan = document.createElement('span');
+          valueSpan.className = 'value';
+          valueSpan.textContent = value || '—';
+          item.appendChild(labelSpan);
+          item.appendChild(valueSpan);
+          metaGrid.appendChild(item);
+        };
+
+        const runId = summary.session_id || summary.uid || '';
+        const playerName = typeof summary.name === 'string' && summary.name.trim()
+          ? summary.name.trim()
+          : 'Not provided';
+        const gridSizeValue = Number(summary.grid_size);
+        appendMeta('Run ID', runId || '—');
+        appendMeta('Player', playerName);
+        appendMeta('Code distance', Number.isFinite(gridSizeValue) ? 'd = ' + gridSizeValue : '—');
+        metaSection.appendChild(metaGrid);
+        fragment.appendChild(metaSection);
+
+        const errorProbabilities = Array.isArray(summary.error_probabilities)
+          ? summary.error_probabilities
+          : [];
+        if (errorProbabilities.length) {
+          const probabilitiesSection = createSummarySection('Error probabilities');
+          const pillList = document.createElement('div');
+          pillList.className = 'summary-probabilities';
+          errorProbabilities.forEach((probability) => {
+            const pill = document.createElement('span');
+            pill.className = 'summary-pill';
+            pill.textContent = formatProbabilityValue(probability);
+            pillList.appendChild(pill);
+          });
+          probabilitiesSection.appendChild(pillList);
+          fragment.appendChild(probabilitiesSection);
+        }
+
+        const statsRaw = Array.isArray(summary.probability_stats)
+          ? summary.probability_stats
+          : [];
+        const stats = statsRaw
+          .map((entry) => {
+            const probability = Number(entry.probability);
+            const totalRoundsRaw = Number(entry.total_rounds);
+            const logicalFailuresRaw = Number(entry.logical_failures);
+            return {
+              probability,
+              totalRounds: Number.isFinite(totalRoundsRaw) ? Math.max(Math.round(totalRoundsRaw), 0) : 0,
+              logicalFailures: Number.isFinite(logicalFailuresRaw) ? Math.max(Math.round(logicalFailuresRaw), 0) : 0,
+            };
+          })
+          .filter((entry) => Number.isFinite(entry.probability))
+          .sort((a, b) => a.probability - b.probability);
+
+        if (stats.length) {
+          const statsSection = createSummarySection('Probability stats');
+          const tableWrapper = document.createElement('div');
+          tableWrapper.className = 'summary-table-wrapper';
+          const table = document.createElement('table');
+          table.className = 'summary-table';
+          table.innerHTML = '<thead><tr><th>Probability</th><th>Total rounds</th><th>Logical failures</th></tr></thead>';
+          const tbody = document.createElement('tbody');
+          stats.forEach((entry) => {
+            const row = document.createElement('tr');
+            row.innerHTML = [
+              formatProbabilityValue(entry.probability),
+              entry.totalRounds.toLocaleString(),
+              entry.logicalFailures.toLocaleString(),
+            ]
+              .map((value) => '<td>' + value + '</td>')
+              .join('');
+            tbody.appendChild(row);
+          });
+          table.appendChild(tbody);
+          tableWrapper.appendChild(table);
+          statsSection.appendChild(tableWrapper);
+
+          const barsTitle = document.createElement('p');
+          barsTitle.className = 'summary-subtitle';
+          barsTitle.textContent = 'Logical errors per level';
+          statsSection.appendChild(barsTitle);
+
+          const barsWrapper = document.createElement('div');
+          barsWrapper.className = 'summary-bars';
+          const maxFailures = stats.reduce((max, entry) => Math.max(max, entry.logicalFailures), 0);
+
+          stats.forEach((entry) => {
+            const bar = document.createElement('div');
+            bar.className = 'summary-bar';
+            const header = document.createElement('div');
+            header.className = 'summary-bar-header';
+            const label = document.createElement('span');
+            label.textContent = 'p = ' + formatProbabilityValue(entry.probability);
+            const value = document.createElement('span');
+            value.textContent = entry.logicalFailures.toLocaleString() + ' / ' + entry.totalRounds.toLocaleString();
+            header.appendChild(label);
+            header.appendChild(value);
+            const track = document.createElement('div');
+            track.className = 'summary-bar-track';
+            const fill = document.createElement('div');
+            fill.className = 'summary-bar-fill';
+            if (entry.logicalFailures > 0 && maxFailures > 0) {
+              const widthPercent = (entry.logicalFailures / maxFailures) * 100;
+              const clamped = Math.min(Math.max(widthPercent, 0), 100);
+              fill.style.width = clamped.toFixed(2) + '%';
+            } else {
+              fill.classList.add('is-zero');
+              fill.style.width = '0%';
+            }
+            track.appendChild(fill);
+            bar.appendChild(header);
+            bar.appendChild(track);
+            barsWrapper.appendChild(bar);
+          });
+
+          statsSection.appendChild(barsWrapper);
+          if (maxFailures === 0) {
+            const note = document.createElement('p');
+            note.className = 'summary-note';
+            note.textContent = 'No logical errors recorded for this run.';
+            statsSection.appendChild(note);
+          }
+
+          fragment.appendChild(statsSection);
+        }
+
+        summaryOutput.appendChild(fragment);
+      }
+
       function showStatsOverlay() {
         if (!statsOverlay) {
           return;
@@ -1782,11 +2182,15 @@
           if (state.surface.logicalParity(current.residual) === 1) {
             levelStats.logicalErrors += 1;
             levelStats.events.push({ type: 'logical_error', round: levelStats.withSyndrome });
-            setStatus('Logical error detected. Continue to the next round.', true);
+            setStatus('Logical error detected. Continue to the next round.', 'error');
             addLog('Logical error recorded for this level.');
           } else {
             levelStats.events.push({ type: 'success', round: levelStats.withSyndrome });
-            setStatus('Syndrome cleared. No logical error.', false);
+            const residualWeight = sumVector(current.residual);
+            const residualSummary = residualWeight === 0
+              ? 'Residual empty (errors identified uniquely).'
+              : 'Residual non-zero (stabilizer-equivalent correction).';
+            setStatus('Syndrome cleared. No logical error. ' + residualSummary, 'success');
             addLog('Syndrome cleared without logical error.');
           }
           renderStats();
@@ -1795,7 +2199,7 @@
           }
           maybeScheduleAutoContinue();
         } else {
-          setStatus('Syndrome weight ' + weight + '. Continue correcting.');
+          setStatus('Syndrome weight ' + weight + '. Continue correcting.', 'info');
         }
       }
 
@@ -1936,10 +2340,11 @@
         state.levelsData = [];
         state.current = null;
         nextRoundBtn.disabled = true;
+        setNextButtonMode('continue');
         summaryCard.classList.remove('visible');
-        summaryOutput.textContent = 'No data yet.';
+        renderSummaryCard(null);
         setNodeText(levelLabel, '-');
-        setStatus('', false);
+        setStatus('', 'info');
         clearBoard();
         startBtn.disabled = false;
         if (expertToggle) {
@@ -1953,7 +2358,7 @@
       function startGame() {
         const distance = Number.parseInt(selectD.value, 10);
         if (!allowedSizes.includes(distance)) {
-          setStatus('Unknown code distance selected.', true);
+          setStatus('Unknown code distance selected.', 'error');
           return;
         }
         const isExpert = Boolean(expertToggle && expertToggle.checked);
@@ -2017,7 +2422,7 @@
         setNodeText(levelLabel, (state.levelIndex + 1) + ' (p = ' + probability + ')');
         addLog('Level ' + (state.levelIndex + 1) + ' started with p=' + probability + '.');
         state.current = null;
-        setStatus('Generating rounds...', false);
+        setStatus('Generating rounds...', 'info');
         setControlsEnabled(false);
         nextRoundBtn.disabled = true;
         // renderStats();
@@ -2062,7 +2467,7 @@
           syndrome,
         };
         addLog('Round ' + (levelStats.withSyndrome + 1) + ' ready. Syndrome weight ' + sumVector(syndrome) + '.');
-        setStatus('Flip qubits to clear the syndrome.', false);
+        setStatus('Flip qubits to clear the syndrome.', 'info');
         setControlsEnabled(true);
         nextRoundBtn.disabled = true;
         updateBoardMarkers();
@@ -2099,7 +2504,7 @@
         if (selectLevels) {
           selectLevels.disabled = false;
         }
-        setStatus('All levels completed. Saving summary.', false);
+        setStatus('All levels completed. Saving summary.', 'info');
         addLog('Session complete - preparing summary.');
 
         const probabilityStats = state.levelsData.map((level) => ({
@@ -2126,7 +2531,7 @@
         };
 
         summaryCard.classList.add('visible');
-        summaryOutput.textContent = JSON.stringify(summary, null, 2);
+        renderSummaryCard(summary);
 
         const payload = {
           uid: state.sessionId,
@@ -2149,22 +2554,39 @@
           })
           .then((data) => {
             addLog('Session stored with id ' + data.uid + '.');
-            setStatus('Session saved to the database.', false);
+            const totals = summary.totals || { total_rounds: 0, logical_failures: 0 };
+            const totalRounds = Number(totals.total_rounds) || 0;
+            const totalFailures = Number(totals.logical_failures) || 0;
+            const statsMessage = 'Session saved to the database. You made ' + totalFailures + ' logical errors in ' + totalRounds + ' rounds.';
+            setStatus(statsMessage, 'success');
+            setNextButtonMode('restart');
+            if (nextRoundBtn) {
+              nextRoundBtn.disabled = false;
+              if (typeof nextRoundBtn.focus === 'function') {
+                nextRoundBtn.focus({ preventScroll: true });
+              }
+            }
           })
           .catch((error) => {
-            setStatus('Could not save session: ' + error.message, true);
+            setStatus('Could not save session: ' + error.message, 'error');
             addLog('Failed to persist session.');
           });
       }
 
       function handleContinue() {
         if (!state.current) {
+          if (!state.running && nextButtonMode === 'restart') {
+            clearAutoTimer();
+            setNextButtonMode('continue');
+            nextRoundBtn.disabled = true;
+            startGame();
+          }
           return;
         }
         clearAutoTimer();
         state.current = null;
         nextRoundBtn.disabled = true;
-        setStatus('Preparing next round...', false);
+        setStatus('Preparing next round...', 'info');
         setControlsEnabled(false);
         setTimeout(scheduleNextRound, 200);
       }
@@ -2241,6 +2663,7 @@
         }
       });
 
+      setNextButtonMode('continue');
       clearBoard();
       applyExpertMode(Boolean(expertToggle && expertToggle.checked));
       setAutoAdvanceEnabled(state.autoAdvanceEnabled);
