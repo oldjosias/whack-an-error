@@ -41,6 +41,7 @@ class DatabaseManager:
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         
+        self.uid_max_length = 32
         try:
             self.engine = create_engine(database_url, echo=False)
             # Create all tables if they don't exist
@@ -50,6 +51,7 @@ class DatabaseManager:
 
             Session = sessionmaker(bind=self.engine)
             self.session = Session()
+            self.uid_max_length = self._detect_uid_length()
         except Exception as e:
             print(f"❌ Database connection failed: {e}")
             raise
@@ -81,6 +83,26 @@ class DatabaseManager:
                     )
             except Exception:
                 pass
+
+    def _detect_uid_length(self) -> int:
+        """Inspect the backing table to determine the stored UID length."""
+
+        default_length = 32
+        inspector = inspect(self.engine)
+        try:
+            columns = inspector.get_columns("game_data")
+        except Exception:
+            return default_length
+
+        for column in columns:
+            if column.get("name") != "uid":
+                continue
+            column_type = column.get("type")
+            length = getattr(column_type, "length", None)
+            if isinstance(length, int) and length > 0:
+                return length
+            break
+        return default_length
 
         if self.engine.dialect.name == "postgresql":
             try:

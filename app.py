@@ -56,8 +56,19 @@ print(
 print("=" * 60)
 
 
+def _uid_max_length() -> int:
+    length = getattr(db_manager, "uid_max_length", 32)
+    if not isinstance(length, int) or length <= 0:
+        return 32
+    return length
+
+
 def _generate_uid() -> str:
-    return uuid.uuid4().hex
+    limit = _uid_max_length()
+    raw = uuid.uuid4().hex
+    if limit >= len(raw):
+        return raw
+    return raw[:limit]
 
 
 def _normalize_uid(raw_value: object) -> str | None:
@@ -66,7 +77,8 @@ def _normalize_uid(raw_value: object) -> str | None:
     cleaned = "".join(ch for ch in str(raw_value).strip() if ch.isalnum())
     if not cleaned:
         return None
-    return cleaned.lower()[:32]
+    limit = _uid_max_length()
+    return cleaned.lower()[:limit]
 
 
 def _parse_json_array(raw_value, coercer):
